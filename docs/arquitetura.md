@@ -11,7 +11,7 @@
 - As personas são declaradamente fictícias e suas hipóteses ainda precisam ser validadas: [PRD/persona-01-coordenadora-de-horarios.md](../PRD/persona-01-coordenadora-de-horarios.md), [PRD/persona-02-professor.md](../PRD/persona-02-professor.md), [PRD/persona-03-gestora-de-espacos-e-materiais.md](../PRD/persona-03-gestora-de-espacos-e-materiais.md) e [PRD/persona-04-analista-de-qualidade-e-auditoria.md](../PRD/persona-04-analista-de-qualidade-e-auditoria.md).
 - O [README.md](../README.md) descreve o estado atual do repositório como uma aplicação educacional Java 17/Spring Boot 3.2.0, com MongoDB, Thymeleaf e Bootstrap, voltada a cadastros de alunos e professores. Isso é contexto da aplicação existente, não uma decisão documentada de arquitetura para o produto de alocação proposto.
 - O [CHANGELOG.md](../CHANGELOG.md) registra uma correção histórica de configuração do `MockMvc` em teste MVC. Não registra decisão de arquitetura para alocação de recursos.
-- O [PRD/requisitos-nao-funcionais.md](../PRD/requisitos-nao-funcionais.md) apresenta metas e perfis de carga como propostas iniciais a validar, não como compromissos aprovados.
+- O [PRD/requisitos-nao-funcionais.md](../PRD/requisitos-nao-funcionais.md) apresenta metas e perfis de carga como propostas iniciais a validar, não como compromissos aprovados.k
 
 ### Objetivo arquitetural
 

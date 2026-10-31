@@ -2,7 +2,9 @@ package com.example.educationalqualityproject.entity;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Document(collection = "students")
 public class Student {
@@ -15,15 +17,28 @@ public class Student {
     private String registrationNumber;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private transient Clock clock;
 
-    // Constructors
     public Student() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this(Clock.systemDefaultZone());
+    }
+
+    public Student(Clock clock) {
+        this.clock = Objects.requireNonNull(clock);
+        LocalDateTime now = LocalDateTime.now(clock);
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
     public Student(String name, String email, String registrationNumber) {
         this();
+        this.name = name;
+        this.email = email;
+        this.registrationNumber = registrationNumber;
+    }
+
+    public Student(String name, String email, String registrationNumber, Clock clock) {
+        this(clock);
         this.name = name;
         this.email = email;
         this.registrationNumber = registrationNumber;
@@ -44,7 +59,7 @@ public class Student {
 
     public void setName(String name) {
         this.name = name;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(clock);
     }
 
     public String getEmail() {
@@ -53,7 +68,7 @@ public class Student {
 
     public void setEmail(String email) {
         this.email = email;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(clock);
     }
 
     public String getRegistrationNumber() {
@@ -62,7 +77,7 @@ public class Student {
 
     public void setRegistrationNumber(String registrationNumber) {
         this.registrationNumber = registrationNumber;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(clock);
     }
 
     public LocalDateTime getCreatedAt() {

@@ -250,33 +250,54 @@ Os casos abaixo são oráculos de teste derivados literalmente dos critérios do
 - `PRD/persona-01-coordenadora-de-horarios.md`, `persona-02-professor.md`, `persona-03-gestora-de-espacos-e-materiais.md` e `persona-04-analista-de-qualidade-e-auditoria.md`: não adicionam IDs independentes ao catálogo; declaram personas/hipóteses ilustrativas.
 - `docs/arquitetura.md`: contexto, restrição `C-ARQ-001`, referências aos RF/RNF, lacunas e oito ADRs na seção “ADRs propostos para revisão”. Os ADRs são propostas, não regras aprovadas, e não foram convertidos em critérios.
 - `README.md` e `CHANGELOG.md`: descrevem a aplicação Java/Spring atual, cadastro de alunos/professores e histórico de correção de teste; não definem as regras de alocação do PRD.
-- Código inspecionado: entidades, serviços, controllers web/API, repositórios, migração e testes. A implementação atual cobre cadastro de estudantes/professores; não implementa o domínio de agenda, recursos, aprovação ou auditoria descrito no PRD. Os testes existentes são `HomeControllerTest` (página inicial) e `EducationalQualityProjectApplicationTests` (contexto Spring); não há testes para os 80 RF/RNFs.
+- Código inspecionado: entidades, serviços, controllers web/API, repositórios, migração e testes. A implementação atual cobre cadastro de estudantes/professores; não implementa o domínio de agenda, recursos, aprovação ou auditoria descrito no PRD. Foram adicionados testes para o CRUD existente, mas eles não cobrem os 80 RF nem os 60 RNF do produto de alocação.
 - Busca no repositório por `AGENTS.md` e arquivos com nome de ADR não encontrou resultados. Não foi encontrado arquivo separado de regras de negócio; `docs/testes/` também não existia antes deste plano.
 
 O código existente foi usado apenas para avaliar cobertura e diferença de escopo, não como fonte para inventar critérios. Os critérios pendentes requerem decisão dos responsáveis de produto/negócio antes de um teste afirmar comportamento não documentado.
 
 ## Matriz de cobertura TDD (estado atual)
 
-**Nenhuma regra do domínio do PRD possui teste novo nesta etapa.** As linhas abaixo cobrem todos os identificadores listados, mas registram lacuna, não aprovação. Os cenários `Pendente` não têm resultado assertável até refinamento; `N/A` não representa caso de teste.
+**Nenhuma regra do domínio de alocação do PRD possui teste novo nesta etapa.** Os testes abaixo para estudantes/professores cobrem apenas o CRUD atualmente implementado; não são evidência para requisitos de agenda, disponibilidade acadêmica, recursos ou auditoria. As linhas abaixo mantêm todos os identificadores do PRD visíveis e registram a lacuna. Cenários `Pendente` não têm resultado assertável até refinamento; `N/A` não representa caso de teste.
 
 | Regra(s) | Caso(s) do plano | Teste JUnit 5 | Status |
 | --- | --- | --- | --- |
-| `RF-COORD-001` a `RF-COORD-020` | Caminho feliz, limite, inválido, conflito e estado proibido, conforme aplicabilidade de cada linha do inventário. | Nenhum criado. | **SEM TESTE** — domínio de agenda/grade ausente; vários resultados estão pendentes. |
-| `RF-PROF-001` a `RF-PROF-020` | Caminho feliz, limite, inválido, conflito e estado proibido, conforme aplicabilidade de cada linha do inventário. | Nenhum criado. | **SEM TESTE** — domínio de professor/disponibilidade ausente; permissões e estados não têm contrato suficiente. |
-| `RF-REC-001` a `RF-REC-020` | Caminho feliz, limite, inválido, conflito e estado proibido, conforme aplicabilidade de cada linha do inventário. | Nenhum criado. | **SEM TESTE** — domínio de recursos/manutenção ausente; transições e consequências pendentes. |
-| `RF-AUD-001` a `RF-AUD-020` | Caminho feliz, limite, inválido, conflito e estado proibido, conforme aplicabilidade de cada linha do inventário. | Nenhum criado. | **SEM TESTE** — domínio de auditoria/relatórios/permissões ausente; contratos de consulta/exportação pendentes. |
-| `RNF-GER-001` a `RNF-GER-020` | Verificações de segurança, privacidade, auditoria, desempenho, recuperação e operação descritas na tabela RNF. | Nenhum criado. | **SEM TESTE** — não há infraestrutura/superfície do domínio; políticas, ambiente e aceite de metas pendentes. |
-| `RNF-COORD-001` a `RNF-COORD-010` | Verificações de renderização, edição, usabilidade, concorrência, acessibilidade e datas descritas na tabela RNF. | Nenhum criado. | **SEM TESTE** — interface de grade ausente; metas propostas. |
-| `RNF-PROF-001` a `RNF-PROF-010` | Verificações de mobile, consulta, duplicidade, notificação, privacidade e usabilidade descritas na tabela RNF. | Nenhum criado. | **SEM TESTE** — fluxos de professor/grade ausentes; metas propostas. |
-| `RNF-REC-001` a `RNF-REC-010` | Verificações de inventário, estado, bloqueio, auditoria, mobile e recuperação descritas na tabela RNF. | Nenhum criado. | **SEM TESTE** — fluxos de recursos ausentes; metas propostas. |
-| `RNF-AUD-001` a `RNF-AUD-010` | Verificações de pesquisa, exportação, evidência, integridade temporal e proteção descritas na tabela RNF. | Nenhum criado. | **SEM TESTE** — consulta/exportação/auditoria ausentes; metas propostas. |
-| `C-ARQ-001` | Job diário com dados novos; limite, inválidos, concorrência e estados conforme a linha da restrição arquitetural. | Nenhum criado. | **SEM TESTE** — pipeline/job ausente; definição de dados novos e demais oráculos pendente; restrição não está no PRD. |
+| `RF-COORD-001` a `RF-COORD-020` | Caminho feliz, limite, inválido, conflito e estado proibido, conforme aplicabilidade de cada linha do inventário. | Nenhum. | **SEM TESTE** — domínio de agenda/grade não implementado; resultados pendentes. |
+| `RF-PROF-001` a `RF-PROF-020` | Caminho feliz, limite, inválido, conflito e estado proibido, conforme aplicabilidade de cada linha do inventário. | Nenhum para disponibilidade/grade; `StudentApiControllerTest`, `TeacherApiControllerTest`, `StudentControllerTest` e `TeacherControllerTest` cobrem somente CRUD de cadastro. | **SEM TESTE DO PRD** — disponibilidade acadêmica, permissões e agenda não implementadas. |
+| `RF-REC-001` a `RF-REC-020` | Caminho feliz, limite, inválido, conflito e estado proibido, conforme aplicabilidade de cada linha do inventário. | Nenhum. | **SEM TESTE** — recursos/manutenção não implementados; transições pendentes. |
+| `RF-AUD-001` a `RF-AUD-020` | Caminho feliz, limite, inválido, conflito e estado proibido, conforme aplicabilidade de cada linha do inventário. | Nenhum. | **SEM TESTE** — auditoria/relatórios/permissões não implementados. |
+| `RNF-GER-001` a `RNF-GER-020` | Verificações de segurança, privacidade, auditoria, desempenho, recuperação e operação descritas na tabela RNF. | Nenhum. | **SEM TESTE** — superfície/infraestrutura de alocação ausente; políticas e aceite pendentes. |
+| `RNF-COORD-001` a `RNF-COORD-010` | Verificações de renderização, edição, usabilidade, concorrência, acessibilidade e datas descritas na tabela RNF. | Nenhum. | **SEM TESTE** — interface de grade ausente; metas propostas. |
+| `RNF-PROF-001` a `RNF-PROF-010` | Verificações de mobile, consulta, duplicidade, notificação, privacidade e usabilidade descritas na tabela RNF. | Nenhum. | **SEM TESTE** — fluxos de professor/grade ausentes; metas propostas. |
+| `RNF-REC-001` a `RNF-REC-010` | Verificações de inventário, estado, bloqueio, auditoria, mobile e recuperação descritas na tabela RNF. | Nenhum. | **SEM TESTE** — fluxos de recursos ausentes; metas propostas. |
+| `RNF-AUD-001` a `RNF-AUD-010` | Verificações de pesquisa, exportação, evidência, integridade temporal e proteção descritas na tabela RNF. | Nenhum. | **SEM TESTE** — consulta/exportação/auditoria ausentes; metas propostas. |
+| `C-ARQ-001` | Job diário com dados novos; limite, inválidos, concorrência e estados conforme a linha da restrição arquitetural. | Nenhum. | **SEM TESTE** — pipeline/job ausente; definição de novidade e oráculos pendentes. |
+
+### Regras do CRUD implementado (fora do PRD de alocação)
+
+| Caso | Testes | Status |
+| --- | --- | --- |
+| Respostas REST de listagem, busca, criação, duplicidade, atualização, exclusão e not-found. | `StudentApiControllerTest` (13), `TeacherApiControllerTest` (11). | **PASSOU** em `./mvnw -B clean verify`. |
+| Listagem e formulários web de estudante/professor, criação, edição, redirect e registro inexistente. | `StudentControllerTest` (7), `TeacherControllerTest` (7). | **PASSOU** em `./mvnw -B clean verify`. |
+| Delegação de leitura, gravação, exclusão e consultas de unicidade aos repositórios. | `StudentServiceTest` (7), `TeacherServiceTest` (6). | **PASSOU** em `./mvnw -B clean verify`. |
+| Campos, timestamps e atualização com relógio determinístico, sem `Thread.sleep`. | `StudentTest` (3), `TeacherTest` (3), usando `Clock.fixed`. | **PASSOU** em `./mvnw -B clean verify`. |
+| Rota home retorna HTTP 200 e view `home`. | `HomeControllerTest` com `MockMvcBuilders.standaloneSetup`. | **PASSOU**; a configuração standalone não renderiza o template Thymeleaf. |
 
 ### Resultado da suíte existente (baseline)
 
-- `EducationalQualityProjectApplicationTests`: 1 teste, aprovado.
-- `HomeControllerTest`: 1 erro antes da asserção; falta bean `MockMvc` (`No qualifying bean of type MockMvc`). Isso é falha preexistente do teste/configuração, não resultado RED de regra do PRD.
-- `./mvnw -B verify` não iniciou corretamente no ambiente (`maven.multiModuleProjectDirectory system property is not set`). A execução com Maven instalado (`mvn -B verify`) compilou e chegou à suíte, mas falhou pelo erro preexistente de `HomeControllerTest` acima; `EducationalQualityProjectApplicationTests` passou.
-- Nenhum teste novo foi criado, portanto não há falhas RED a atribuir a regras nem casos que já passem para investigar.
+- `./mvnw -B verify` inicialmente falhou porque o wrapper não definia `maven.multiModuleProjectDirectory`; `mvnw` foi ajustado para definir a propriedade antes de iniciar o wrapper.
+- `HomeControllerTest` falhou ao renderizar o fragmento Thymeleaf, sem alterar suas asserções. Foi convertido para `MockMvcBuilders.standaloneSetup`, mantendo as verificações de HTTP 200 e view `home`; esse teste não valida o template renderizado.
+- A prova de gate abaixo do mínimo foi executada com apenas `StudentTest`: JaCoCo reportou 17,1% de linhas e 0% de branches e rejeitou o build contra os limites de 80%/70%.
+- `./mvnw -B clean verify` foi executado após limpar o dataset parcial: os 59 testes passaram (zero falhas/erros) e o gate foi restaurado para verde.
+- Relatório final: 185/187 linhas (98,9%), 33/36 branches (91,7%), 698/703 instruções (99,3%). HTML e XML foram gerados em `target/site/jacoco/`.
 
-**Bloqueio para prosseguir sem inventar contratos:** o código contém apenas entidades/serviços/controllers de estudantes e professores, não as interfaces do domínio do PRD. Criar assinaturas para grade, validação, aprovação, recursos, auditoria, notificações, relatórios e pipeline definiria APIs e modelos sem fonte contratual. Além disso, 205 resultados do inventário estão marcados `Pendente` e 15 dimensões `N/A`; os primeiros precisam de decisão de produto para produzir asserções, e os segundos não são casos executáveis. A cobertura permanece incompleta até existir contrato do domínio e refinamento dessas lacunas.
+**Lacunas JaCoCo observadas na execução final:**
+
+| Arquivo/classe | Linhas/branches descobertos | Classificação | Ação |
+| --- | --- | --- | --- |
+| `EducationalQualityProjectApplication.java` | Linhas 10–11 (`SpringApplication.run`). | Cosmética para regras de domínio; o teste de contexto cobre inicialização do contexto, mas não o método launcher. | Sem teste adicional de cobertura; não há comportamento de negócio nessas linhas. |
+| `StudentApiController.java` | Branches na linha 71 (e-mail `null`) e linha 77 (matrícula `null`). | Risco de contrato: payload parcial pode pular validações de unicidade, mas semântica de `PUT`/campos ausentes não está documentada. | Não adicionar asserção até definir se campos nulos são permitidos, rejeitados ou preservados. |
+| `TeacherApiController.java` | Branch na linha 68 (e-mail `null`). | Risco de contrato: payload parcial pula validação de unicidade; semântica de campos ausentes não definida. | Não adicionar asserção até definir o contrato de atualização. |
+
+Não há limites numéricos de regra de negócio implementada que justifiquem casos `-1/0/+1` com `@ParameterizedTest`; não inventei tais limites. Os campos de timestamp agora aceitam `Clock` nos construtores de teste e mantêm `Clock.systemDefaultZone()` como padrão de produção.
+
+**Limite de escopo:** os testes CRUD não cobrem o domínio de alocação do PRD. As 205 ocorrências `Pendente` ainda exigem decisões de produto para virar oráculos; as 15 dimensões `N/A` não são casos executáveis. O gate JaCoCo foi provado abaixo do mínimo e voltou a passar após a restauração da suíte completa. A verificação da rota home usa setup standalone e não cobre rendering Thymeleaf.

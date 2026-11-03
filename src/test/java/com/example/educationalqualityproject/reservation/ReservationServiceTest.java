@@ -26,4 +26,18 @@ class ReservationServiceTest {
         service.approve(reservation, responsible);
         assertEquals(ReservationService.Status.APROVADA, reservation.status());
     }
+
+        @Test
+        void requesterCannotApproveOwnRestrictedReservation() {
+                ReservationService service = new ReservationService(
+                                Clock.fixed(Instant.parse("2026-01-01T10:00:00Z"), ZoneOffset.UTC));
+                ReservationService.Resource resource = new ReservationService.Resource("room-1", true);
+                ReservationService.Actor requesterAndApprover = new ReservationService.Actor(
+                                "user-1", ReservationService.Role.RESPONSAVEL);
+                ReservationService.Reservation reservation = service.request(resource, requesterAndApprover);
+
+                service.approve(reservation, requesterAndApprover);
+
+                assertEquals(ReservationService.Status.SOLICITADA, reservation.status());
+        }
 }

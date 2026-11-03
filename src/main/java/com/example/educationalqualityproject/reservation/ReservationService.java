@@ -1,6 +1,9 @@
 package com.example.educationalqualityproject.reservation;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 
 public class ReservationService {
 
@@ -11,7 +14,14 @@ public class ReservationService {
     }
 
     public Reservation request(Resource resource, Actor requester) {
-        return new Reservation(resource, requester, Status.SOLICITADA);
+        return new Reservation(resource, requester, Status.SOLICITADA,
+            null, null, clock.instant());
+        }
+
+        public Optional<Reservation> request(Resource resource, Actor requester,
+                         Instant startsAt, Instant endsAt) {
+        return Optional.of(new Reservation(resource, requester, Status.SOLICITADA,
+            startsAt, endsAt, clock.instant()));
     }
 
     public Reservation approve(Reservation reservation, Actor approver) {
@@ -44,7 +54,13 @@ public class ReservationService {
         NAO_COMPARECEU
     }
 
-    public record Resource(String id, boolean restricted) {
+    public record Resource(String id, boolean restricted, List<MaintenancePeriod> maintenancePeriods) {
+        public Resource(String id, boolean restricted) {
+            this(id, restricted, List.of());
+        }
+    }
+
+    public record MaintenancePeriod(Instant startsAt, Instant endsAt) {
     }
 
     public record Actor(String id, Role role) {
@@ -54,11 +70,18 @@ public class ReservationService {
         private final Resource resource;
         private final Actor requester;
         private Status status;
+        private final Instant startsAt;
+        private final Instant endsAt;
+        private final Instant requestedAt;
 
-        public Reservation(Resource resource, Actor requester, Status status) {
+        public Reservation(Resource resource, Actor requester, Status status,
+                           Instant startsAt, Instant endsAt, Instant requestedAt) {
             this.resource = resource;
             this.requester = requester;
             this.status = status;
+            this.startsAt = startsAt;
+            this.endsAt = endsAt;
+            this.requestedAt = requestedAt;
         }
 
         public Resource resource() {
@@ -71,6 +94,18 @@ public class ReservationService {
 
         public Status status() {
             return status;
+        }
+
+        public Instant startsAt() {
+            return startsAt;
+        }
+
+        public Instant endsAt() {
+            return endsAt;
+        }
+
+        public Instant requestedAt() {
+            return requestedAt;
         }
 
         public void setStatus(Status status) {

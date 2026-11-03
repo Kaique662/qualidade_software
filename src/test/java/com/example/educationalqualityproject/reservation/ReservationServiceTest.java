@@ -5,8 +5,11 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReservationServiceTest {
 
@@ -39,5 +42,25 @@ class ReservationServiceTest {
                 service.approve(reservation, requesterAndApprover);
 
                 assertEquals(ReservationService.Status.SOLICITADA, reservation.status());
+        }
+
+        @Test
+        void reservationCrossingMaintenanceStartByOneSecondIsRejected() {
+                Clock clock = Clock.fixed(Instant.parse("2026-01-01T10:00:00Z"), ZoneOffset.UTC);
+                ReservationService service = new ReservationService(clock);
+                Instant maintenanceStart = clock.instant();
+                ReservationService.Resource resource = new ReservationService.Resource(
+                                "room-1", false,
+                                List.of(new ReservationService.MaintenancePeriod(
+                                                maintenanceStart, maintenanceStart.plusSeconds(60))));
+                ReservationService.Actor requester = new ReservationService.Actor(
+                                "user-1", ReservationService.Role.SOLICITANTE);
+                Instant reservationStart = maintenanceStart.minusSeconds(10);
+                Instant reservationEnd = maintenanceStart.plusSeconds(1);
+
+                Optional<ReservationService.Reservation> result = service.request(
+                                resource, requester, reservationStart, reservationEnd);
+
+                assertTrue(result.isEmpty());
         }
 }

@@ -15,6 +15,9 @@ public class ReservationService {
     }
 
     public Reservation approve(Reservation reservation, Actor approver) {
+        if (reservation.resource().restricted() && approver.role() == Role.RESPONSAVEL) {
+            reservation.setStatus(Status.APROVADA);
+        }
         return reservation;
     }
 

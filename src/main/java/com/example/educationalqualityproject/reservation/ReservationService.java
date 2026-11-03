@@ -22,7 +22,9 @@ public class ReservationService {
     }
 
     private boolean canApproveRestrictedReservation(Reservation reservation, Actor approver) {
-        return reservation.resource().restricted() && approver.role() == Role.RESPONSAVEL;
+        return reservation.resource().restricted()
+                && approver.role() == Role.RESPONSAVEL
+                && !reservation.requester().id().equals(approver.id());
     }
 
     public enum Role {

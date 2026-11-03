@@ -40,6 +40,14 @@ public class ReservationService {
         return reservation;
     }
 
+    public Reservation startUse(Reservation reservation) {
+        return reservation;
+    }
+
+    public Reservation complete(Reservation reservation) {
+        return reservation;
+    }
+
         private boolean canApproveRestrictedReservationExcludingRequester(
             Reservation reservation,
             Actor approver) {

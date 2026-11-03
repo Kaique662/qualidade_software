@@ -15,10 +15,14 @@ public class ReservationService {
     }
 
     public Reservation approve(Reservation reservation, Actor approver) {
-        if (reservation.resource().restricted() && approver.role() == Role.RESPONSAVEL) {
+        if (canApproveRestrictedReservation(reservation, approver)) {
             reservation.setStatus(Status.APROVADA);
         }
         return reservation;
+    }
+
+    private boolean canApproveRestrictedReservation(Reservation reservation, Actor approver) {
+        return reservation.resource().restricted() && approver.role() == Role.RESPONSAVEL;
     }
 
     public enum Role {

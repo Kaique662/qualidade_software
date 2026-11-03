@@ -41,15 +41,16 @@ public class ReservationService {
     }
 
     public Reservation startUse(Reservation reservation) {
-        if (reservation.status() == Status.APROVADA) {
-            reservation.setStatus(Status.EM_USO);
-        }
-        return reservation;
+        return transition(reservation, Status.APROVADA, Status.EM_USO);
     }
 
     public Reservation complete(Reservation reservation) {
-        if (reservation.status() == Status.EM_USO) {
-            reservation.setStatus(Status.CONCLUIDA);
+        return transition(reservation, Status.EM_USO, Status.CONCLUIDA);
+    }
+
+    private Reservation transition(Reservation reservation, Status expected, Status next) {
+        if (reservation.status() == expected) {
+            reservation.setStatus(next);
         }
         return reservation;
     }

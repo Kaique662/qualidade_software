@@ -15,13 +15,15 @@ public class ReservationService {
     }
 
     public Reservation approve(Reservation reservation, Actor approver) {
-        if (canApproveRestrictedReservation(reservation, approver)) {
+        if (canApproveRestrictedReservationExcludingRequester(reservation, approver)) {
             reservation.setStatus(Status.APROVADA);
         }
         return reservation;
     }
 
-    private boolean canApproveRestrictedReservation(Reservation reservation, Actor approver) {
+        private boolean canApproveRestrictedReservationExcludingRequester(
+            Reservation reservation,
+            Actor approver) {
         return reservation.resource().restricted()
                 && approver.role() == Role.RESPONSAVEL
                 && !reservation.requester().id().equals(approver.id());

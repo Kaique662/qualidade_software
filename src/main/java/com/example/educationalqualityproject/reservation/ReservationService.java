@@ -20,6 +20,12 @@ public class ReservationService {
 
         public Optional<Reservation> request(Resource resource, Actor requester,
                          Instant startsAt, Instant endsAt) {
+            boolean overlapsMaintenance = resource.maintenancePeriods().stream()
+                .anyMatch(period -> startsAt.isBefore(period.endsAt())
+                    && endsAt.isAfter(period.startsAt()));
+            if (overlapsMaintenance) {
+                return Optional.empty();
+            }
         return Optional.of(new Reservation(resource, requester, Status.SOLICITADA,
             startsAt, endsAt, clock.instant()));
     }

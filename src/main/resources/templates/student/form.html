@@ -1,35 +1,24 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
-<head>
-    <meta charset="UTF-8">
-    <title th:text="${student.id != null ? 'Edit Student' : 'New Student'}">Student Form</title>
-</head>
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
+<head><title>Núcleo | Estudante</title></head>
 <body>
-    <div id="content">
-        <h2 th:text="${student.id != null ? 'Edit Student' : 'New Student'}">Student Form</h2>
-        
-        <form th:action="${student.id != null ? '/students/' + student.id : '/students'}" 
-              th:object="${student}" 
-              method="post">
-            
-            <div class="mb-3">
-                <label for="name" class="form-label">Name</label>
-                <input type="text" class="form-control" id="name" th:field="*{name}" required>
-            </div>
-            
-            <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" th:field="*{email}" required>
-            </div>
-            
-            <div class="mb-3">
-                <label for="registrationNumber" class="form-label">Registration Number</label>
-                <input type="text" class="form-control" id="registrationNumber" th:field="*{registrationNumber}" required>
-            </div>
-            
-            <button type="submit" class="btn btn-primary" th:text="${student.id != null ? 'Update' : 'Save'}">Save</button>
-            <a href="/students" class="btn btn-secondary">Cancel</a>
-        </form>
-    </div>
+<div id="content" class="form-page">
+    <a class="back-link" th:href="@{/students}"><i class="bi bi-arrow-left"></i> Voltar para estudantes</a>
+    <section class="form-heading">
+        <span class="form-symbol form-symbol-coral"><i class="bi bi-mortarboard"></i></span>
+        <div><p class="eyebrow">CADASTRO DE ESTUDANTE</p><h1 th:text="${student.id != null ? 'Editar estudante' : 'Novo estudante'}">Novo estudante</h1><p class="page-description">Preencha os dados acadêmicos e de contato.</p></div>
+    </section>
+    <form class="record-form" th:action="${student.id != null ? '/students/' + student.id : '/students'}" th:object="${student}" method="post">
+        <div class="form-section-title"><span>01</span><div><h2>Dados do estudante</h2><p>Os campos marcados com * são obrigatórios.</p></div></div>
+        <div class="form-fields">
+            <div class="field-group field-wide"><label for="name">Nome completo <span>*</span></label><input id="name" type="text" th:field="*{name}" autocomplete="name" maxlength="120" placeholder="Ex.: Ana Beatriz Costa" required></div>
+            <div class="field-group"><label for="email">E-mail <span>*</span></label><input id="email" type="email" th:field="*{email}" autocomplete="email" maxlength="160" placeholder="ana@escola.edu.br" required></div>
+            <div class="field-group"><label for="registrationNumber">Matrícula <span>*</span></label><input id="registrationNumber" type="text" th:field="*{registrationNumber}" maxlength="40" placeholder="Ex.: 2026-0018" required></div>
+        </div>
+        <div class="form-actions"><a class="secondary-button" th:href="@{/students}">Cancelar</a><button class="primary-button" type="submit"><i class="bi bi-check2"></i><span th:text="${student.id != null ? 'Salvar alterações' : 'Criar cadastro'}">Criar cadastro</span></button></div>
+    </form>
+    <p class="form-footnote"><i class="bi bi-shield-check"></i> Confira os dados antes de salvar. A matrícula deve ser única.</p>
+</div>
 </body>
 </html>

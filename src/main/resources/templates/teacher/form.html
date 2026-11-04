@@ -1,35 +1,24 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
-<head>
-    <meta charset="UTF-8">
-    <title th:text="${teacher.id != null ? 'Edit Teacher' : 'New Teacher'}">Teacher Form</title>
-</head>
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
+<head><title>Núcleo | Professor</title></head>
 <body>
-    <div id="content">
-        <h2 th:text="${teacher.id != null ? 'Edit Teacher' : 'New Teacher'}">Teacher Form</h2>
-        
-        <form th:action="${teacher.id != null ? '/teachers/' + teacher.id : '/teachers'}" 
-              th:object="${teacher}" 
-              method="post">
-            
-            <div class="mb-3">
-                <label for="name" class="form-label">Name</label>
-                <input type="text" class="form-control" id="name" th:field="*{name}" required>
-            </div>
-            
-            <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" th:field="*{email}" required>
-            </div>
-            
-            <div class="mb-3">
-                <label for="department" class="form-label">Department</label>
-                <input type="text" class="form-control" id="department" th:field="*{department}" required>
-            </div>
-            
-            <button type="submit" class="btn btn-primary" th:text="${teacher.id != null ? 'Update' : 'Save'}">Save</button>
-            <a href="/teachers" class="btn btn-secondary">Cancel</a>
-        </form>
-    </div>
+<div id="content" class="form-page">
+    <a class="back-link" th:href="@{/teachers}"><i class="bi bi-arrow-left"></i> Voltar para professores</a>
+    <section class="form-heading">
+        <span class="form-symbol form-symbol-blue"><i class="bi bi-person-workspace"></i></span>
+        <div><p class="eyebrow">CADASTRO DE PROFESSOR</p><h1 th:text="${teacher.id != null ? 'Editar professor' : 'Novo professor'}">Novo professor</h1><p class="page-description">Preencha os dados profissionais e de contato.</p></div>
+    </section>
+    <form class="record-form" th:action="${teacher.id != null ? '/teachers/' + teacher.id : '/teachers'}" th:object="${teacher}" method="post">
+        <div class="form-section-title"><span>01</span><div><h2>Dados do professor</h2><p>Os campos marcados com * são obrigatórios.</p></div></div>
+        <div class="form-fields">
+            <div class="field-group field-wide"><label for="name">Nome completo <span>*</span></label><input id="name" type="text" th:field="*{name}" autocomplete="name" maxlength="120" placeholder="Ex.: Marcos Oliveira" required></div>
+            <div class="field-group"><label for="email">E-mail profissional <span>*</span></label><input id="email" type="email" th:field="*{email}" autocomplete="email" maxlength="160" placeholder="marcos@escola.edu.br" required></div>
+            <div class="field-group"><label for="department">Departamento <span>*</span></label><input id="department" type="text" th:field="*{department}" maxlength="100" placeholder="Ex.: Ciências da Natureza" required></div>
+        </div>
+        <div class="form-actions"><a class="secondary-button" th:href="@{/teachers}">Cancelar</a><button class="primary-button" type="submit"><i class="bi bi-check2"></i><span th:text="${teacher.id != null ? 'Salvar alterações' : 'Criar cadastro'}">Criar cadastro</span></button></div>
+    </form>
+    <p class="form-footnote"><i class="bi bi-shield-check"></i> Confira os dados antes de salvar. O e-mail deve ser único.</p>
+</div>
 </body>
 </html>

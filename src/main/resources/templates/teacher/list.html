@@ -1,41 +1,35 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
-<head>
-    <meta charset="UTF-8">
-    <title>Teachers - Educational Quality Project</title>
-</head>
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
+<head><title>Núcleo | Professores</title></head>
 <body>
-    <div id="content">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>Teachers</h2>
-            <a href="/teachers/new" class="btn btn-primary">Add New Teacher</a>
-        </div>
-        
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Department</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="teacher : ${teachers}">
-                    <td th:text="${teacher.id}"></td>
-                    <td th:text="${teacher.name}"></td>
-                    <td th:text="${teacher.email}"></td>
-                    <td th:text="${teacher.department}"></td>
-                    <td>
-                        <a href="#" th:href="@{/teachers/{id}/edit(id=${teacher.id})}" class="btn btn-sm btn-outline-primary">Edit</a>
-                        <a href="#" th:href="@{/teachers/{id}/delete(id=${teacher.id})}" 
-                           class="btn btn-sm btn-outline-danger" 
-                           onclick="return confirm('Are you sure you want to delete this teacher?')">Delete</a>
-                    </td>
-                </tr>
+<div id="content" class="directory-page">
+    <section class="page-heading">
+        <div><p class="eyebrow">CORPO DOCENTE <span class="eyebrow-slash">/</span> CADASTRO</p><h1>Professores</h1><p class="page-description">Organize contatos e departamentos do corpo docente.</p></div>
+        <a class="primary-button" th:href="@{/teachers/new}"><i class="bi bi-plus-lg"></i><span>Novo professor</span></a>
+    </section>
+
+    <section class="directory-toolbar" aria-label="Ferramentas da listagem">
+        <div class="record-summary"><span class="summary-number" th:text="${#lists.size(teachers)}">0</span><span>registros</span></div>
+        <label class="search-field"><i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">Buscar professores</span><input type="search" placeholder="Buscar por nome, e-mail ou departamento" data-table-filter="teacherRows"></label>
+    </section>
+
+    <div class="table-frame" th:if="${!#lists.isEmpty(teachers)}">
+        <table class="data-table">
+            <thead><tr><th>PROFESSOR</th><th>DEPARTAMENTO</th><th>CONTATO</th><th class="actions-heading">AÇÕES</th></tr></thead>
+            <tbody id="teacherRows">
+            <tr th:each="teacher : ${teachers}" th:attr="data-search=${teacher.name + ' ' + teacher.email + ' ' + teacher.department}">
+                <td><div class="person-cell"><span class="person-avatar avatar-blue" th:text="${#strings.substring(teacher.name, 0, 1).toUpperCase()}">A</span><span class="person-details"><strong th:text="${teacher.name}">Nome</strong><small>Professor</small></span></div></td>
+                <td><span class="department-tag" th:text="${teacher.department}">Departamento</span></td>
+                <td><a class="email-link" th:href="'mailto:' + ${teacher.email}" th:text="${teacher.email}">professor@example.com</a></td>
+                <td><div class="row-actions"><a class="icon-button" th:href="@{/teachers/{id}/edit(id=${teacher.id})}" aria-label="Editar professor" title="Editar"><i class="bi bi-pencil-square"></i></a><form th:action="@{/teachers/{id}/delete(id=${teacher.id})}" method="post" data-confirm="Remover este professor? Esta ação não pode ser desfeita."><button class="icon-button danger-action" type="submit" aria-label="Excluir professor" title="Excluir"><i class="bi bi-trash3"></i></button></form></div></td>
+            </tr>
+            <tr class="filter-empty" hidden><td colspan="4">Nenhum cadastro corresponde à busca.</td></tr>
             </tbody>
         </table>
     </div>
+    <section class="empty-state" th:if="${#lists.isEmpty(teachers)}"><span class="empty-icon empty-icon-blue"><i class="bi bi-person-workspace"></i></span><p class="eyebrow">COMECE POR AQUI</p><h2>Nenhum professor cadastrado</h2><p>Adicione o primeiro registro para organizar o corpo docente.</p><a class="primary-button" th:href="@{/teachers/new}"><i class="bi bi-plus-lg"></i><span>Cadastrar professor</span></a></section>
+    <p class="no-search-results" data-no-results hidden>Nenhum cadastro corresponde à busca.</p>
+</div>
 </body>
 </html>

@@ -20,7 +20,8 @@ class HomeControllerTest {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("home"))
-                .andExpect(content().string(containsString("Welcome to Educational Quality Project")))
-                .andExpect(content().string(containsString("Manage Students")));
+                .andExpect(content().string(containsString("Painel acadêmico")))
+                .andExpect(content().string(containsString("Estudantes")))
+                .andExpect(content().string(containsString("Professores")));
     }
 }

@@ -49,3 +49,5 @@ Thumbs.db
 .env
 .env.local
 src/main/resources/application.properties
+perf/resultados/
+perf/relatorio-*/

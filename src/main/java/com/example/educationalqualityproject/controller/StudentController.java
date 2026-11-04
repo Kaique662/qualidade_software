@@ -16,6 +16,11 @@ public class StudentController {
     @Autowired
     private StudentService studentService;
 
+    @ModelAttribute("activePage")
+    public String activePage() {
+        return "students";
+    }
+
     @GetMapping
     public String listStudents(Model model) {
         List<Student> students = studentService.getAllStudents();
@@ -50,7 +55,7 @@ public class StudentController {
         return "redirect:/students";
     }
 
-    @GetMapping("/{id}/delete")
+    @PostMapping("/{id}/delete")
     public String deleteStudent(@PathVariable String id) {
         studentService.deleteStudent(id);
         return "redirect:/students";

@@ -1,6 +1,7 @@
 package com.example.educationalqualityproject.entity;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ public class Teacher {
     private String department;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    @Transient
     private transient Clock clock;
 
     public Teacher() {

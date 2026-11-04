@@ -84,4 +84,24 @@ class ReservationServiceTest {
                 service.complete(reservation);
                 assertEquals(ReservationService.Status.CONCLUIDA, reservation.status());
         }
+
+        @Test
+        void invalidTransitionsDoNotAdvanceReservationState() {
+                ReservationService service = new ReservationService(
+                                Clock.fixed(Instant.parse("2026-01-01T10:00:00Z"), ZoneOffset.UTC));
+                ReservationService.Resource resource = new ReservationService.Resource("room-1", true);
+                ReservationService.Actor requester = new ReservationService.Actor(
+                                "user-1", ReservationService.Role.SOLICITANTE);
+                ReservationService.Actor responsible = new ReservationService.Actor(
+                                "user-2", ReservationService.Role.RESPONSAVEL);
+
+                ReservationService.Reservation requested = service.request(resource, requester);
+                service.startUse(requested);
+                assertEquals(ReservationService.Status.SOLICITADA, requested.status());
+
+                ReservationService.Reservation approved = service.request(resource, requester);
+                service.approve(approved, responsible);
+                service.complete(approved);
+                assertEquals(ReservationService.Status.APROVADA, approved.status());
+        }
 }

@@ -1,41 +1,35 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
-<head>
-    <meta charset="UTF-8">
-    <title>Students - Educational Quality Project</title>
-</head>
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
+<head><title>Núcleo | Estudantes</title></head>
 <body>
-    <div id="content">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>Students</h2>
-            <a href="/students/new" class="btn btn-primary">Add New Student</a>
-        </div>
-        
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Registration Number</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="student : ${students}">
-                    <td th:text="${student.id}"></td>
-                    <td th:text="${student.name}"></td>
-                    <td th:text="${student.email}"></td>
-                    <td th:text="${student.registrationNumber}"></td>
-                    <td>
-                        <a href="#" th:href="@{/students/{id}/edit(id=${student.id})}" class="btn btn-sm btn-outline-primary">Edit</a>
-                        <a href="#" th:href="@{/students/{id}/delete(id=${student.id})}" 
-                           class="btn btn-sm btn-outline-danger" 
-                           onclick="return confirm('Are you sure you want to delete this student?')">Delete</a>
-                    </td>
-                </tr>
+<div id="content" class="directory-page">
+    <section class="page-heading">
+        <div><p class="eyebrow">VIDA ACADÊMICA <span class="eyebrow-slash">/</span> CADASTRO</p><h1>Estudantes</h1><p class="page-description">Consulte e mantenha os registros de matrícula atualizados.</p></div>
+        <a class="primary-button" th:href="@{/students/new}"><i class="bi bi-plus-lg"></i><span>Novo estudante</span></a>
+    </section>
+
+    <section class="directory-toolbar" aria-label="Ferramentas da listagem">
+        <div class="record-summary"><span class="summary-number" th:text="${#lists.size(students)}">0</span><span>registros</span></div>
+        <label class="search-field"><i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">Buscar estudantes</span><input type="search" placeholder="Buscar por nome, e-mail ou matrícula" data-table-filter="studentRows"></label>
+    </section>
+
+    <div class="table-frame" th:if="${!#lists.isEmpty(students)}">
+        <table class="data-table">
+            <thead><tr><th>ESTUDANTE</th><th>MATRÍCULA</th><th>CONTATO</th><th class="actions-heading">AÇÕES</th></tr></thead>
+            <tbody id="studentRows">
+            <tr th:each="student : ${students}" th:attr="data-search=${student.name + ' ' + student.email + ' ' + student.registrationNumber}">
+                <td><div class="person-cell"><span class="person-avatar avatar-coral" th:text="${#strings.substring(student.name, 0, 1).toUpperCase()}">A</span><span class="person-details"><strong th:text="${student.name}">Nome</strong><small>Estudante</small></span></div></td>
+                <td><span class="registration-code" th:text="${student.registrationNumber}">MAT-001</span></td>
+                <td><a class="email-link" th:href="'mailto:' + ${student.email}" th:text="${student.email}">estudante@example.com</a></td>
+                <td><div class="row-actions"><a class="icon-button" th:href="@{/students/{id}/edit(id=${student.id})}" aria-label="Editar estudante" title="Editar"><i class="bi bi-pencil-square"></i></a><form th:action="@{/students/{id}/delete(id=${student.id})}" method="post" data-confirm="Remover este estudante? Esta ação não pode ser desfeita."><button class="icon-button danger-action" type="submit" aria-label="Excluir estudante" title="Excluir"><i class="bi bi-trash3"></i></button></form></div></td>
+            </tr>
+            <tr class="filter-empty" hidden><td colspan="4">Nenhum cadastro corresponde à busca.</td></tr>
             </tbody>
         </table>
     </div>
+    <section class="empty-state" th:if="${#lists.isEmpty(students)}"><span class="empty-icon"><i class="bi bi-mortarboard"></i></span><p class="eyebrow">COMECE POR AQUI</p><h2>Nenhum estudante cadastrado</h2><p>Adicione o primeiro registro para começar a organizar as matrículas.</p><a class="primary-button" th:href="@{/students/new}"><i class="bi bi-plus-lg"></i><span>Cadastrar estudante</span></a></section>
+    <p class="no-search-results" data-no-results hidden>Nenhum cadastro corresponde à busca.</p>
+</div>
 </body>
 </html>

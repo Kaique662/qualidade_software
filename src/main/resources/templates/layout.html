@@ -1,37 +1,52 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="html(content)">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:fragment="html(content)">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title ?: 'Educational Quality Project'}">Educational Quality Project</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="theme-color" content="#173b3a">
+    <title th:text="${title ?: 'Núcleo | Gestão acadêmica'}">Núcleo | Gestão acadêmica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link th:href="@{/css/app.css}" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="/">Educational Quality</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/students">Students</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/teachers">Teachers</a>
-                    </li>
-                </ul>
+    <div class="app-shell">
+        <aside class="side-rail" id="sideRail">
+            <a class="brand-lockup" th:href="@{/}" aria-label="Núcleo, início">
+                <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
+                <span class="brand-copy"><strong>Núcleo</strong><small>gestão acadêmica</small></span>
+            </a>
+            <div class="rail-label">ESPAÇO DE TRABALHO</div>
+            <nav class="primary-nav" aria-label="Navegação principal">
+                <a class="nav-item" th:href="@{/}" th:classappend="${activePage == 'home' ? ' is-active' : ''}">
+                    <i class="bi bi-columns-gap"></i><span>Visão geral</span>
+                </a>
+                <a class="nav-item" th:href="@{/students}" th:classappend="${activePage == 'students' ? ' is-active' : ''}">
+                    <i class="bi bi-mortarboard"></i><span>Estudantes</span>
+                </a>
+                <a class="nav-item" th:href="@{/teachers}" th:classappend="${activePage == 'teachers' ? ' is-active' : ''}">
+                    <i class="bi bi-person-workspace"></i><span>Professores</span>
+                </a>
+            </nav>
+            <div class="rail-bottom">
+                <span class="status-pip"></span>
+                <span><strong>Área administrativa</strong><small>cadastros acadêmicos</small></span>
             </div>
-        </div>
-    </nav>
-
-    <div class="container mt-4">
-        <div th:replace="${content}"></div>
+        </aside>
+        <main class="main-area">
+            <header class="topbar">
+                <button class="icon-button menu-toggle" type="button" aria-label="Abrir menu" aria-controls="sideRail" aria-expanded="false">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="breadcrumb-line"><span>Área de trabalho</span><i class="bi bi-chevron-right"></i><strong th:text="${activePage == 'home' ? 'Visão geral' : (activePage == 'students' ? 'Estudantes' : 'Professores')}">Visão geral</strong></div>
+                <div class="topbar-note"><span class="status-pip"></span> Sistema acadêmico</div>
+            </header>
+            <div class="page-content" th:insert="${content}"></div>
+            <footer class="app-footer"><span>Núcleo <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span></span><span>Gestão simples, dados organizados.</span></footer>
+        </main>
     </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/app.js}" defer></script>
 </body>
 </html>

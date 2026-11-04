@@ -1,19 +1,42 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
-<head>
-    <meta charset="UTF-8">
-    <title>Home - Educational Quality Project</title>
-</head>
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
+<head><title>Núcleo | Visão geral</title></head>
 <body>
-    <div id="content">
-        <div class="jumbotron">
-            <h1 class="display-4">Welcome to Educational Quality Project</h1>
-            <p class="lead">This is a simple application for managing students and teachers.</p>
-            <hr class="my-4">
-            <p>Use the navigation menu to manage students and teachers.</p>
-            <a class="btn btn-primary btn-lg" href="/students" role="button">Manage Students</a>
-            <a class="btn btn-secondary btn-lg" href="/teachers" role="button">Manage Teachers</a>
+<div id="content" class="dashboard-page">
+    <section class="welcome-band">
+        <div class="welcome-copy">
+            <p class="eyebrow eyebrow-light"><span class="eyebrow-dot"></span> GESTÃO ACADÊMICA</p>
+            <h1>Painel acadêmico</h1>
+            <p>Um espaço claro para manter os cadastros da sua comunidade em ordem.</p>
         </div>
-    </div>
+        <div class="welcome-symbol" aria-hidden="true"><i class="bi bi-bezier2"></i><span>02</span></div>
+    </section>
+
+    <section class="dashboard-section" aria-labelledby="workspace-title">
+        <div class="section-heading">
+            <div><p class="eyebrow">SEU ESPAÇO</p><h2 id="workspace-title">Cadastros</h2></div>
+            <span class="section-count"><span class="status-pip"></span> 2 áreas disponíveis</span>
+        </div>
+        <div class="workspace-grid">
+            <a class="workspace-card student-card" th:href="@{/students}">
+                <div class="workspace-card-top"><span class="module-icon"><i class="bi bi-mortarboard"></i></span><i class="bi bi-arrow-up-right card-arrow"></i></div>
+                <div class="workspace-card-copy"><p class="eyebrow">VIDA ACADÊMICA</p><h3>Estudantes</h3><p>Consulte matrículas, encontre cadastros e mantenha os dados atualizados.</p></div>
+                <span class="card-action">Abrir cadastro <i class="bi bi-arrow-right"></i></span>
+            </a>
+            <a class="workspace-card teacher-card" th:href="@{/teachers}">
+                <div class="workspace-card-top"><span class="module-icon"><i class="bi bi-person-workspace"></i></span><i class="bi bi-arrow-up-right card-arrow"></i></div>
+                <div class="workspace-card-copy"><p class="eyebrow">CORPO DOCENTE</p><h3>Professores</h3><p>Organize contatos e departamentos em um só lugar.</p></div>
+                <span class="card-action">Abrir cadastro <i class="bi bi-arrow-right"></i></span>
+            </a>
+        </div>
+    </section>
+
+    <section class="dashboard-note" aria-label="Informação do sistema">
+        <span class="note-icon"><i class="bi bi-info-lg"></i></span>
+        <p>Os cadastros são independentes. As alterações ficam disponíveis nas respectivas listagens.</p>
+        <span class="note-tag">NÚCLEO <span>·</span> 01</span>
+    </section>
+</div>
 </body>
 </html>

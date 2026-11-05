@@ -108,9 +108,33 @@ A aplicação também disponibiliza endpoints RESTful para integração com outr
 - `PUT /api/teachers/{id}` - Atualizar informações de um professor
 - `DELETE /api/teachers/{id}` - Excluir um professor
 
+#### Planejamento acadêmico
+Os recursos abaixo oferecem operações `GET` (listar e consultar por ID), `POST` (criar), `PUT` (editar) e `DELETE` (excluir):
+- `/api/academic-periods` - Períodos letivos com datas de início e fim
+- `/api/courses` - Cursos
+- `/api/classes` - Turmas vinculadas a um curso e período letivo
+- `/api/subjects` - Disciplinas vinculadas a um curso
+- `/api/schedules` - Grades vinculadas a um período, com atividades e professores
+
+Uma atividade de grade deve referenciar curso, turma, disciplina e ao menos um professor existente. As datas da atividade precisam estar dentro do período letivo e o fim deve ser posterior ao início. Grades são salvas como `RASCUNHO`; aprovação, publicação, recorrência e detecção de conflitos ainda não fazem parte desta implementação.
+
+#### Disponibilidade, recursos e alocação
+- `GET/POST /api/teachers/{teacherId}/availability` - Consultar ou cadastrar disponibilidade/indisponibilidade por período letivo.
+- `PUT/DELETE /api/teachers/{teacherId}/availability/{availabilityId}` - Editar ou remover enquanto a coleta do período estiver aberta. Disponibilidade recorrente usa `recurringWeekly`, `validFrom`, `validUntil`, `weekdays`, `dailyStartsAt` e `dailyEndsAt`.
+- `GET /api/resources` - Pesquisar por `code`, `name`, `type` (`ROOM` ou `MATERIAL`), `location`, `state`, `startsAt` e `endsAt`. Para materiais, a resposta inclui `availableQuantity` calculada para o intervalo quando as datas são informadas.
+- `GET/POST /api/resources`, `GET/PUT/DELETE /api/resources/{id}` - Consultar, cadastrar, editar ou inativar recurso. `DELETE` altera o estado para `INACTIVE`.
+- `PATCH /api/resources/{id}/state?state=AVAILABLE|IN_USE|MAINTENANCE|INACTIVE` - Alterar o estado operacional.
+- `GET /api/resources/{resourceId}/agenda?startsAt=...&endsAt=...` - Consultar alocações no intervalo.
+- `GET /api/resources/{resourceId}/block-impact?startsAt=...&endsAt=...` - Listar alocações afetadas antes de solicitar bloqueio.
+- `POST /api/resource-blocks` - Criar bloqueio pendente com motivo, responsável e intervalo; a resposta inclui as alocações afetadas.
+- `GET/PUT /api/resource-blocks/{id}`, `POST /api/resource-blocks/{id}/confirm?actor=...` e `POST /api/resource-blocks/{id}/cancel?actor=...` - Consultar, editar, confirmar ou cancelar mantendo histórico.
+- `PUT /api/schedules/{scheduleId}/activities/{activityId}/allocation` - Associar uma sala e quantidades de materiais à atividade; `DELETE` na mesma rota remove a alocação.
+
+A alocação verifica capacidade e características da sala, professores conflitantes ou indisponíveis, bloqueios confirmados, buffers e quantidade concorrente de materiais. As comparações de intervalo usam início inclusivo e fim exclusivo. A verificação e a gravação não são uma transação distribuída: concorrência simultânea entre requisições ainda requer uma garantia de persistência apropriada. Os horários usam `LocalDateTime`; o fuso institucional ainda precisa ser definido para atender integralmente aos RNFs temporais.
+
 ## Estrutura do Projeto
 
-- `entity/` - Entidades MongoDB para Aluno e Professor
+- `entity/` - Entidades MongoDB para estudantes, professores e planejamento acadêmico
 - `repository/` - Interfaces da camada de acesso a dados
 - `service/` - Camada de lógica de negócios
 - `controller/` - Controladores web

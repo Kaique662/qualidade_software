@@ -27,6 +27,6 @@ A taxa de erro inesperado deve ser inferior a 1% das amostras. Para este cálcul
 
 ## Pré-requisitos para medir
 
-A aplicação atual neste repositório não implementa endpoints de autenticação, disponibilidade ou reserva. O plano JMeter em `perf/reservas.jmx` documenta um contrato HTTP esperado e permite sobrescrever host, porta e caminhos por propriedades JMeter. Antes de validar as metas, o grupo deve aprovar/implementar o contrato e preparar localmente sala, professor, intervalo e contas fictícias usados pelo CSV.
+A API de reservas (`/api/reservations`) e a persistência PostgreSQL opcional foram adicionadas em 2026-11-06. O plano JMeter em `perf/reservas.jmx` foi escrito antes desse fluxo e seus caminhos/contratos ainda precisam ser comparados com a API atual; não executá-lo sem essa revisão. Para uma rodada, habilitar `reservations.datasource.url`, aplicar Flyway, preparar localmente sala, professor, material, intervalo e identidades fictícias, e adaptar a autenticação simulada, pois autenticação real ainda não existe.
 
 A carga não deve ser executada contra produção, homologação ou qualquer serviço compartilhado. O JTL bruto e o relatório HTML são artefatos locais; não devem ser versionados.

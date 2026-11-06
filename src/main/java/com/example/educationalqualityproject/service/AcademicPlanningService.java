@@ -15,7 +15,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class AcademicPlanningService {
@@ -182,15 +189,33 @@ public class AcademicPlanningService {
     }
 
     public AcademicSchedule saveAcademicSchedule(String id, AcademicSchedule schedule) {
+        return saveAcademicSchedule(id, schedule, "sistema", null);
+    }
+
+    public AcademicSchedule saveAcademicSchedule(String id, AcademicSchedule schedule,
+                                                 String actor, Integer expectedVersion) {
         requireText(schedule.getName(), "Nome da grade é obrigatório");
         requireText(schedule.getAcademicPeriodId(), "Período letivo da grade é obrigatório");
+        requireText(actor, "Identificador do responsável é obrigatório");
         AcademicPeriod period = academicPeriodRepository.findById(schedule.getAcademicPeriodId())
                 .orElseThrow(() -> badRequest("Período letivo informado não existe"));
         if (schedule.getActivities() == null) {
             throw badRequest("A lista de atividades da grade não pode ser nula");
         }
+        AcademicSchedule existing = null;
         if (id != null) {
-            getAcademicSchedule(id);
+            existing = getAcademicSchedule(id);
+            initializeWorkflow(existing);
+            if ("PENDENTE_APROVACAO".equals(existing.getStatus())) {
+                throw conflict("A grade não pode ser editada enquanto aguarda aprovação");
+            }
+            if (expectedVersion == null) {
+                throw new ResponseStatusException(HttpStatus.PRECONDITION_REQUIRED,
+                        "Informe expectedVersion para evitar sobrescrever uma versão mais recente");
+            }
+            if (expectedVersion != existing.getVersionNumber()) {
+                throw conflict("A grade foi alterada desde a versão consultada; atualize antes de salvar");
+            }
             schedule.setId(id);
         }
         for (AcademicSchedule.ScheduledActivity activity : schedule.getActivities()) {
@@ -198,12 +223,408 @@ public class AcademicPlanningService {
         }
         resourcePlanningService.validateScheduleAllocations(schedule);
         schedule.setStatus("RASCUNHO");
+        initializeWorkflow(schedule);
+        if (existing == null) {
+            schedule.setVersions(new ArrayList<>());
+            schedule.setAuditEvents(new ArrayList<>());
+            schedule.setAdjustmentRequests(new ArrayList<>());
+            schedule.setNotifications(new ArrayList<>());
+            schedule.setVersionNumber(1);
+            addAuditEvent(schedule, "GRADE_CRIADA", actor, null, "RASCUNHO", null);
+        } else {
+            schedule.setVersions(existing.getVersions());
+            schedule.setAuditEvents(existing.getAuditEvents());
+            schedule.setAdjustmentRequests(existing.getAdjustmentRequests());
+            schedule.setNotifications(existing.getNotifications());
+            schedule.setPublishedVersionNumber(existing.getPublishedVersionNumber());
+            schedule.setPublishedAt(existing.getPublishedAt());
+            schedule.setVersionNumber(existing.getVersionNumber() + 1);
+            addAuditEvent(schedule, "VERSAO_CRIADA", actor, existing.getStatus(), "RASCUNHO",
+                    "Versão " + schedule.getVersionNumber());
+        }
+        schedule.getVersions().add(createVersion(schedule, actor));
         return academicScheduleRepository.save(schedule);
     }
 
+    public AcademicSchedule submitScheduleForApproval(String id, String actor) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        requireText(actor, "Identificador do responsável é obrigatório");
+        requireStatus(schedule, "RASCUNHO", "Somente uma grade em rascunho pode ser submetida");
+        changeStatus(schedule, "SUBMETIDA_PARA_APROVACAO", actor, "PENDENTE_APROVACAO", null);
+        notifyRecipient(schedule, currentVersion(schedule).getCreatedBy(),
+                "A versão " + schedule.getVersionNumber() + " da grade foi submetida para aprovação.");
+        return academicScheduleRepository.save(schedule);
+    }
+
+    public AcademicSchedule approveSchedule(String id, String actor) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        requireText(actor, "Identificador do responsável é obrigatório");
+        requireStatus(schedule, "PENDENTE_APROVACAO", "Somente uma grade submetida pode ser aprovada");
+        changeStatus(schedule, "GRADE_APROVADA", actor, "APROVADA", null);
+        notifyRecipient(schedule, currentVersion(schedule).getCreatedBy(),
+                "A versão " + schedule.getVersionNumber() + " da grade foi aprovada.");
+        return academicScheduleRepository.save(schedule);
+    }
+
+    public AcademicSchedule rejectSchedule(String id, String actor, String justification) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        requireText(actor, "Identificador do responsável é obrigatório");
+        requireText(justification, "A justificativa da rejeição é obrigatória");
+        requireStatus(schedule, "PENDENTE_APROVACAO", "Somente uma grade submetida pode ser rejeitada");
+        changeStatus(schedule, "GRADE_REJEITADA", actor, "REJEITADA", justification);
+        notifyRecipient(schedule, currentVersion(schedule).getCreatedBy(),
+                "A versão " + schedule.getVersionNumber() + " foi rejeitada: " + justification);
+        return academicScheduleRepository.save(schedule);
+    }
+
+    public AcademicSchedule publishSchedule(String id, String actor) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        requireText(actor, "Identificador do responsável é obrigatório");
+        requireStatus(schedule, "APROVADA", "Somente uma grade aprovada pode ser publicada");
+        Integer previousPublishedVersion = schedule.getPublishedVersionNumber();
+        changeStatus(schedule, "GRADE_PUBLICADA", actor, "PUBLICADA", null);
+        schedule.setPublishedVersionNumber(schedule.getVersionNumber());
+        schedule.setPublishedAt(LocalDateTime.now());
+        Set<String> recipients = new LinkedHashSet<>();
+        addTeacherRecipients(recipients, currentVersion(schedule).getActivities());
+        if (previousPublishedVersion != null) {
+            addTeacherRecipients(recipients, findVersion(schedule, previousPublishedVersion).getActivities());
+        }
+        for (String recipient : recipients) {
+            notifyRecipient(schedule, recipient,
+                    "A versão " + schedule.getVersionNumber() + " da grade foi publicada.");
+        }
+        return academicScheduleRepository.save(schedule);
+    }
+
+    public List<AcademicSchedule.ScheduleVersion> getScheduleVersions(String id) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        initializeWorkflow(schedule);
+        return schedule.getVersions();
+    }
+
+    public AcademicSchedule.ScheduleVersion getPublishedScheduleVersion(String id) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        if (schedule.getPublishedVersionNumber() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "A grade ainda não foi publicada");
+        }
+        return findVersion(schedule, schedule.getPublishedVersionNumber());
+    }
+
+    public List<AcademicSchedule.ScheduleChange> compareScheduleVersions(String id, int from, int to) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        AcademicSchedule.ScheduleVersion previous = findVersion(schedule, from);
+        AcademicSchedule.ScheduleVersion next = findVersion(schedule, to);
+        Map<String, AcademicSchedule.ScheduledActivity> previousActivities = indexActivities(previous.getActivities());
+        Map<String, AcademicSchedule.ScheduledActivity> nextActivities = indexActivities(next.getActivities());
+        List<AcademicSchedule.ScheduleChange> changes = new ArrayList<>();
+        for (Map.Entry<String, AcademicSchedule.ScheduledActivity> entry : previousActivities.entrySet()) {
+            AcademicSchedule.ScheduledActivity newer = nextActivities.get(entry.getKey());
+            if (newer == null) {
+                changes.add(new AcademicSchedule.ScheduleChange("REMOVIDA", entry.getKey(), entry.getValue(), null));
+            } else if (!sameActivity(entry.getValue(), newer)) {
+                changes.add(new AcademicSchedule.ScheduleChange("ALTERADA", entry.getKey(), entry.getValue(), newer));
+            }
+        }
+        for (Map.Entry<String, AcademicSchedule.ScheduledActivity> entry : nextActivities.entrySet()) {
+            if (!previousActivities.containsKey(entry.getKey())) {
+                changes.add(new AcademicSchedule.ScheduleChange("INCLUIDA", entry.getKey(), null, entry.getValue()));
+            }
+        }
+        return changes;
+    }
+
+    public AcademicSchedule.AdjustmentRequest requestScheduleAdjustment(
+            String id, String requester, String activityId, String description) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        requireText(requester, "Identificador do solicitante é obrigatório");
+        requireText(description, "Descrição do ajuste é obrigatória");
+        initializeWorkflow(schedule);
+        if (activityId != null && schedule.getActivities().stream()
+                .noneMatch(activity -> activityId.equals(activity.getId()))) {
+            throw badRequest("Atividade informada não pertence à grade");
+        }
+        AcademicSchedule.AdjustmentRequest request = new AcademicSchedule.AdjustmentRequest();
+        request.setRequester(requester);
+        request.setActivityId(activityId);
+        request.setDescription(description);
+        request.setCreatedAt(LocalDateTime.now());
+        schedule.getAdjustmentRequests().add(request);
+        addAuditEvent(schedule, "AJUSTE_SOLICITADO", requester, schedule.getStatus(), schedule.getStatus(), request.getId());
+        AcademicSchedule.ScheduleVersion version = currentVersion(schedule);
+        if (version.getCreatedBy() != null && !version.getCreatedBy().equals(requester)) {
+            notifyRecipient(schedule, version.getCreatedBy(), "Nova solicitação de ajuste na grade: " + description);
+        }
+        academicScheduleRepository.save(schedule);
+        return request;
+    }
+
+    public AcademicSchedule.AdjustmentRequest respondToAdjustment(String id, String requestId, String actor,
+                                                                  String decision, String response) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        initializeWorkflow(schedule);
+        requireText(actor, "Identificador do responsável é obrigatório");
+        requireText(response, "A resposta da solicitação é obrigatória");
+        if (!"ACEITA".equals(decision) && !"REJEITADA".equals(decision)) {
+            throw badRequest("A decisão deve ser ACEITA ou REJEITADA");
+        }
+        AcademicSchedule.AdjustmentRequest request = schedule.getAdjustmentRequests().stream()
+                .filter(item -> requestId.equals(item.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitação de ajuste não encontrada"));
+        if (!"ABERTA".equals(request.getStatus())) {
+            throw conflict("A solicitação de ajuste já foi respondida");
+        }
+        request.setStatus(decision);
+        request.setResponse(response);
+        request.setRespondedBy(actor);
+        request.setRespondedAt(LocalDateTime.now());
+        addAuditEvent(schedule, "AJUSTE_" + decision, actor, schedule.getStatus(), schedule.getStatus(), requestId);
+        notifyRecipient(schedule, request.getRequester(), "Sua solicitação de ajuste foi " + decision.toLowerCase() + ".");
+        academicScheduleRepository.save(schedule);
+        return request;
+    }
+
+    public List<AcademicSchedule.AdjustmentRequest> getScheduleAdjustmentRequests(String id) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        initializeWorkflow(schedule);
+        return schedule.getAdjustmentRequests();
+    }
+
+    public List<AcademicSchedule.ScheduleNotification> getScheduleNotifications(String id, String recipient) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        requireText(recipient, "Identificador do destinatário é obrigatório");
+        initializeWorkflow(schedule);
+        return schedule.getNotifications().stream()
+                .filter(notification -> recipient.equals(notification.getRecipient()))
+                .toList();
+    }
+
+    public AcademicSchedule markNotificationRead(String id, String notificationId, String recipient) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        requireText(recipient, "Identificador do destinatário é obrigatório");
+        initializeWorkflow(schedule);
+        AcademicSchedule.ScheduleNotification notification = schedule.getNotifications().stream()
+                .filter(item -> notificationId.equals(item.getId()) && recipient.equals(item.getRecipient()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notificação não encontrada"));
+        notification.setRead(true);
+        return academicScheduleRepository.save(schedule);
+    }
+
+    public List<AcademicSchedule.ScheduleAuditEvent> getScheduleAudit(String id) {
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        initializeWorkflow(schedule);
+        return schedule.getAuditEvents();
+    }
+
+    public List<AcademicSchedule.ScheduleReport> getScheduleReport(String academicPeriodId, String status,
+                                                                   String teacherId, String classId,
+                                                                   String roomResourceId) {
+        List<AcademicSchedule.ScheduleReport> report = new ArrayList<>();
+        boolean filterActivities = teacherId != null || classId != null || roomResourceId != null;
+        for (AcademicSchedule schedule : academicScheduleRepository.findAll()) {
+            if (academicPeriodId != null && !academicPeriodId.equals(schedule.getAcademicPeriodId())) {
+                continue;
+            }
+            if (status != null && !status.equals(schedule.getStatus())) {
+                continue;
+            }
+                List<AcademicSchedule.ScheduledActivity> scheduleActivities = schedule.getActivities() == null
+                    ? List.of() : schedule.getActivities();
+                List<AcademicSchedule.ScheduledActivity> activities = scheduleActivities.stream()
+                    .filter(activity -> teacherId == null || activity.getTeacherIds() != null
+                        && activity.getTeacherIds().contains(teacherId))
+                    .filter(activity -> classId == null || classId.equals(activity.getClassId()))
+                    .filter(activity -> roomResourceId == null || roomResourceId.equals(activity.getRoomResourceId()))
+                    .toList();
+            if (filterActivities && activities.isEmpty()) {
+                continue;
+            }
+            AcademicSchedule.ScheduleReport row = new AcademicSchedule.ScheduleReport();
+            row.setScheduleId(schedule.getId());
+            row.setName(schedule.getName());
+            row.setAcademicPeriodId(schedule.getAcademicPeriodId());
+            row.setStatus(schedule.getStatus());
+            row.setVersionNumber(schedule.getVersionNumber());
+            row.setPublishedVersionNumber(schedule.getPublishedVersionNumber());
+            row.setPublishedAt(schedule.getPublishedAt());
+            row.setActivities(filterActivities ? activities : scheduleActivities);
+            report.add(row);
+        }
+        return report;
+    }
+
     public void deleteAcademicSchedule(String id) {
-        getAcademicSchedule(id);
+        AcademicSchedule schedule = getAcademicSchedule(id);
+        if (schedule.getPublishedVersionNumber() != null) {
+            throw conflict("Grades publicadas não podem ser excluídas para preservar o histórico");
+        }
         academicScheduleRepository.deleteById(id);
+    }
+
+    private void initializeWorkflow(AcademicSchedule schedule) {
+        if (schedule.getVersions() == null) {
+            schedule.setVersions(new ArrayList<>());
+        }
+        if (schedule.getAuditEvents() == null) {
+            schedule.setAuditEvents(new ArrayList<>());
+        }
+        if (schedule.getAdjustmentRequests() == null) {
+            schedule.setAdjustmentRequests(new ArrayList<>());
+        }
+        if (schedule.getNotifications() == null) {
+            schedule.setNotifications(new ArrayList<>());
+        }
+        if (schedule.getActivities() == null) {
+            schedule.setActivities(new ArrayList<>());
+        }
+    }
+
+    private AcademicSchedule.ScheduleVersion createVersion(AcademicSchedule schedule, String actor) {
+        AcademicSchedule.ScheduleVersion version = new AcademicSchedule.ScheduleVersion();
+        version.setNumber(schedule.getVersionNumber());
+        version.setName(schedule.getName());
+        version.setAcademicPeriodId(schedule.getAcademicPeriodId());
+        version.setCreatedBy(actor);
+        version.setCreatedAt(LocalDateTime.now());
+        version.setActivities(schedule.getActivities().stream().map(this::copyActivity).toList());
+        return version;
+    }
+
+    private AcademicSchedule.ScheduledActivity copyActivity(AcademicSchedule.ScheduledActivity source) {
+        AcademicSchedule.ScheduledActivity copy = new AcademicSchedule.ScheduledActivity();
+        copy.setId(source.getId());
+        copy.setCourseId(source.getCourseId());
+        copy.setClassId(source.getClassId());
+        copy.setSubjectId(source.getSubjectId());
+        copy.setTeacherIds(source.getTeacherIds() == null ? new ArrayList<>() : new ArrayList<>(source.getTeacherIds()));
+        copy.setStartsAt(source.getStartsAt());
+        copy.setEndsAt(source.getEndsAt());
+        copy.setRequiredRoomCapacity(source.getRequiredRoomCapacity());
+        copy.setRequiredRoomFeatures(source.getRequiredRoomFeatures() == null
+                ? new ArrayList<>() : new ArrayList<>(source.getRequiredRoomFeatures()));
+        copy.setRoomResourceId(source.getRoomResourceId());
+        List<AcademicSchedule.MaterialAssignment> materials = new ArrayList<>();
+        if (source.getMaterials() != null) {
+            for (AcademicSchedule.MaterialAssignment material : source.getMaterials()) {
+                AcademicSchedule.MaterialAssignment materialCopy = new AcademicSchedule.MaterialAssignment();
+                materialCopy.setResourceId(material.getResourceId());
+                materialCopy.setQuantity(material.getQuantity());
+                materials.add(materialCopy);
+            }
+        }
+        copy.setMaterials(materials);
+        return copy;
+    }
+
+    private AcademicSchedule.ScheduleVersion currentVersion(AcademicSchedule schedule) {
+        if (schedule.getVersions().isEmpty()) {
+            AcademicSchedule.ScheduleVersion initial = createVersion(schedule,
+                    schedule.getStatus().equals("RASCUNHO") ? "sistema" : "desconhecido");
+            initial.setNumber(Math.max(1, schedule.getVersionNumber()));
+            schedule.setVersionNumber(initial.getNumber());
+            schedule.getVersions().add(initial);
+        }
+        return findVersion(schedule, schedule.getVersionNumber());
+    }
+
+    private AcademicSchedule.ScheduleVersion findVersion(AcademicSchedule schedule, int number) {
+        return schedule.getVersions().stream()
+                .filter(version -> version.getNumber() == number)
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Versão " + number + " da grade não encontrada"));
+    }
+
+    private Map<String, AcademicSchedule.ScheduledActivity> indexActivities(
+            List<AcademicSchedule.ScheduledActivity> activities) {
+        Map<String, AcademicSchedule.ScheduledActivity> indexed = new HashMap<>();
+        for (AcademicSchedule.ScheduledActivity activity : activities) {
+            indexed.put(activity.getId(), activity);
+        }
+        return indexed;
+    }
+
+    private boolean sameActivity(AcademicSchedule.ScheduledActivity left,
+                                 AcademicSchedule.ScheduledActivity right) {
+        if (!Objects.equals(left.getCourseId(), right.getCourseId())
+                || !Objects.equals(left.getClassId(), right.getClassId())
+                || !Objects.equals(left.getSubjectId(), right.getSubjectId())
+                || !Objects.equals(left.getTeacherIds(), right.getTeacherIds())
+                || !Objects.equals(left.getStartsAt(), right.getStartsAt())
+                || !Objects.equals(left.getEndsAt(), right.getEndsAt())
+                || !Objects.equals(left.getRequiredRoomCapacity(), right.getRequiredRoomCapacity())
+                || !Objects.equals(left.getRequiredRoomFeatures(), right.getRequiredRoomFeatures())
+                || !Objects.equals(left.getRoomResourceId(), right.getRoomResourceId())) {
+            return false;
+        }
+        List<AcademicSchedule.MaterialAssignment> leftMaterials = left.getMaterials();
+        List<AcademicSchedule.MaterialAssignment> rightMaterials = right.getMaterials();
+        if (leftMaterials == null || rightMaterials == null) {
+            return leftMaterials == rightMaterials;
+        }
+        if (leftMaterials.size() != rightMaterials.size()) {
+            return false;
+        }
+        for (int index = 0; index < leftMaterials.size(); index++) {
+            AcademicSchedule.MaterialAssignment leftMaterial = leftMaterials.get(index);
+            AcademicSchedule.MaterialAssignment rightMaterial = rightMaterials.get(index);
+            if (!Objects.equals(leftMaterial.getResourceId(), rightMaterial.getResourceId())
+                    || leftMaterial.getQuantity() != rightMaterial.getQuantity()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void requireStatus(AcademicSchedule schedule, String expected, String message) {
+        if (!expected.equals(schedule.getStatus())) {
+            throw conflict(message);
+        }
+    }
+
+    private void changeStatus(AcademicSchedule schedule, String action, String actor,
+                              String newStatus, String details) {
+        initializeWorkflow(schedule);
+        currentVersion(schedule);
+        String previousStatus = schedule.getStatus();
+        schedule.setStatus(newStatus);
+        addAuditEvent(schedule, action, actor, previousStatus, newStatus, details);
+    }
+
+    private void addAuditEvent(AcademicSchedule schedule, String action, String actor,
+                               String previousStatus, String newStatus, String details) {
+        initializeWorkflow(schedule);
+        AcademicSchedule.ScheduleAuditEvent event = new AcademicSchedule.ScheduleAuditEvent();
+        event.setAction(action);
+        event.setActor(actor);
+        event.setPreviousStatus(previousStatus);
+        event.setNewStatus(newStatus);
+        event.setDetails(details);
+        event.setOccurredAt(LocalDateTime.now());
+        schedule.getAuditEvents().add(event);
+    }
+
+    private void notifyRecipient(AcademicSchedule schedule, String recipient, String message) {
+        if (recipient == null || recipient.isBlank()) {
+            return;
+        }
+        initializeWorkflow(schedule);
+        AcademicSchedule.ScheduleNotification notification = new AcademicSchedule.ScheduleNotification();
+        notification.setRecipient(recipient);
+        notification.setMessage(message);
+        notification.setCreatedAt(LocalDateTime.now());
+        schedule.getNotifications().add(notification);
+    }
+
+    private void addTeacherRecipients(Set<String> recipients,
+                                      List<AcademicSchedule.ScheduledActivity> activities) {
+        for (AcademicSchedule.ScheduledActivity activity : activities) {
+            if (activity.getTeacherIds() != null) {
+                recipients.addAll(activity.getTeacherIds());
+            }
+        }
     }
 
     private void validateActivity(AcademicPeriod period, AcademicSchedule.ScheduledActivity activity) {

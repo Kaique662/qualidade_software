@@ -3,5 +3,10 @@ spring.application.name=Educational Quality Project
 # MongoDB Configuration
 spring.data.mongodb.uri=${MONGODB_URI}
 
+# Optional PostgreSQL reservation module; set all three values to enable it.
+# reservations.datasource.url=jdbc:postgresql://localhost:5432/educational_quality
+# reservations.datasource.username=app_user
+# reservations.datasource.password=change-me
+
 # Server Configuration
 server.port=8080

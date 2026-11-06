@@ -116,7 +116,36 @@ Os recursos abaixo oferecem operações `GET` (listar e consultar por ID), `POST
 - `/api/subjects` - Disciplinas vinculadas a um curso
 - `/api/schedules` - Grades vinculadas a um período, com atividades e professores
 
-Uma atividade de grade deve referenciar curso, turma, disciplina e ao menos um professor existente. As datas da atividade precisam estar dentro do período letivo e o fim deve ser posterior ao início. Grades são salvas como `RASCUNHO`; aprovação, publicação, recorrência e detecção de conflitos ainda não fazem parte desta implementação.
+Uma atividade de grade deve referenciar curso, turma, disciplina e ao menos um professor existente. As datas da atividade precisam estar dentro do período letivo e o fim deve ser posterior ao início. Ao criar ou editar uma grade, o sistema registra uma versão com cópia das atividades.
+
+#### Reservas de recursos
+O módulo de reservas usa PostgreSQL e é ativado somente quando `reservations.datasource.url` estiver configurada. O Flyway aplica as migrations em `src/main/resources/db/migration`; configure também `reservations.datasource.username` e `reservations.datasource.password` conforme o ambiente. Sem essa configuração, a API de reservas fica desativada e as demais telas/rotas continuam usando a configuração MongoDB existente.
+
+- `POST /api/reservations` - Criar solicitação. Corpo: `resourceId`, `resourceType` (`ROOM`, `PROFESSOR` ou `MATERIAL`), `requesterId`, `startsAt`, `endsAt`, `quantity` (opcional, padrão 1) e `academicPeriodId` (obrigatório para professor). Use instantes ISO-8601 com offset, por exemplo `2026-03-01T10:00:00Z`.
+- `GET /api/reservations?resourceId=...&status=...&startsBefore=...&endsAfter=...` - Consultar reservas com filtros opcionais.
+- `GET /api/reservations/{id}` - Consultar uma reserva.
+- `POST /api/reservations/{id}/approve?actorId=...&role=RESPONSAVEL` - Aprovar; recurso restrito não pode ser aprovado pelo próprio solicitante.
+- `POST /api/reservations/{id}/start?actorId=...` e `POST /api/reservations/{id}/complete?actorId=...` - Avançar `APROVADA → EM_USO → CONCLUIDA`.
+- `GET /api/reservations/{id}/history` - Consultar eventos da reserva, incluindo solicitações e transições rejeitadas.
+
+Salas e professores usam exclusão GiST no PostgreSQL; materiais usam lock transacional por recurso e cálculo do pico de quantidade em intervalos semiabertos, retornando `409` para conflito ou excesso. O fluxo valida também estado, bloqueios, buffers e agenda atual no MongoDB. Isso não cria transação distribuída com as gravações de grade/alocação Mongo: reservas SQL e alocações acadêmicas ainda podem divergir sob gravações concorrentes entre os dois fluxos.
+
+Os parâmetros `requesterId`, `actorId` e `role` ainda são informados pelo cliente porque o projeto não possui autenticação/autorização; portanto, o módulo não deve ser exposto como seguro em rede compartilhada. Rejeição/cancelamento/não comparecimento e notificações não foram implementados porque a matriz de transição e o canal ainda estão em aberto nos registros de requisitos.
+
+#### Versões, aprovação e publicação de grades
+- `GET /api/schedules/{id}/versions` - Consultar as versões e suas atividades.
+- `GET /api/schedules/{id}/versions/compare?fromVersion=1&toVersion=2` - Comparar inclusões, remoções e alterações de atividades.
+- `PUT /api/schedules/{id}?expectedVersion=1&actor=coordenacao` - Salvar nova versão. `expectedVersion` é obrigatório; divergência retorna `409` e ausência retorna `428`.
+- `POST /api/schedules/{id}/submit-for-approval?actor=coordenacao` - Submeter um rascunho.
+- `POST /api/schedules/{id}/approve?actor=direcao` ou `POST /api/schedules/{id}/reject?actor=direcao&justification=...` - Registrar decisão; rejeição exige justificativa.
+- `POST /api/schedules/{id}/publish?actor=direcao` - Publicar somente uma versão aprovada.
+- `GET /api/schedules/{id}/published` - Consultar a versão publicada; grades publicadas não podem ser excluídas.
+- `POST /api/schedules/{id}/adjustment-requests` - Abrir solicitação com `requester`, `description` e `activityId` opcional. `GET` na mesma rota consulta solicitações; `PATCH /api/schedules/{id}/adjustment-requests/{requestId}?actor=coordenacao&decision=ACEITA&response=...` registra a resposta.
+- `GET /api/schedules/{id}/notifications?recipient=teacher-1` e `PATCH /api/schedules/{id}/notifications/{notificationId}/read?recipient=teacher-1` - Consultar e marcar notificações como lidas.
+- `GET /api/schedules/{id}/audit` - Consultar eventos de criação, revisão, aprovação, publicação e solicitações de ajuste.
+- `GET /api/schedule-reports` - Gerar relatório JSON; filtros opcionais: `academicPeriodId`, `status`, `teacherId`, `classId` e `roomResourceId`.
+
+Os estados do fluxo são `RASCUNHO`, `PENDENTE_APROVACAO`, `APROVADA`, `REJEITADA` e `PUBLICADA`. Edições e alocações de sala/material são permitidas somente em rascunho; cada alteração cria uma nova versão. As versões, auditoria, solicitações e notificações são armazenadas no próprio documento MongoDB da grade. Notificações são registros consultáveis, sem integração de envio por e-mail ou push. O projeto ainda não implementa autenticação/autorização: `actor` e `recipient` são identificadores informados na requisição e não identidades verificadas, portanto não representam controle de acesso seguro.
 
 #### Disponibilidade, recursos e alocação
 - `GET/POST /api/teachers/{teacherId}/availability` - Consultar ou cadastrar disponibilidade/indisponibilidade por período letivo.
@@ -128,7 +157,7 @@ Uma atividade de grade deve referenciar curso, turma, disciplina e ao menos um p
 - `GET /api/resources/{resourceId}/block-impact?startsAt=...&endsAt=...` - Listar alocações afetadas antes de solicitar bloqueio.
 - `POST /api/resource-blocks` - Criar bloqueio pendente com motivo, responsável e intervalo; a resposta inclui as alocações afetadas.
 - `GET/PUT /api/resource-blocks/{id}`, `POST /api/resource-blocks/{id}/confirm?actor=...` e `POST /api/resource-blocks/{id}/cancel?actor=...` - Consultar, editar, confirmar ou cancelar mantendo histórico.
-- `PUT /api/schedules/{scheduleId}/activities/{activityId}/allocation` - Associar uma sala e quantidades de materiais à atividade; `DELETE` na mesma rota remove a alocação.
+- `PUT /api/schedules/{scheduleId}/activities/{activityId}/allocation?expectedVersion=1&actor=coordenacao` - Associar uma sala e quantidades de materiais à atividade; `DELETE` na mesma rota remove a alocação. Ambas exigem a versão esperada e geram nova versão.
 
 A alocação verifica capacidade e características da sala, professores conflitantes ou indisponíveis, bloqueios confirmados, buffers e quantidade concorrente de materiais. As comparações de intervalo usam início inclusivo e fim exclusivo. A verificação e a gravação não são uma transação distribuída: concorrência simultânea entre requisições ainda requer uma garantia de persistência apropriada. Os horários usam `LocalDateTime`; o fuso institucional ainda precisa ser definido para atender integralmente aos RNFs temporais.
 

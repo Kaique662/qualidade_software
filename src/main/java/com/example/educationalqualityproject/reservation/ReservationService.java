@@ -4,7 +4,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.stereotype.Service;
 
+@Service
 public class ReservationService {
 
     private final Clock clock;
@@ -34,7 +36,7 @@ public class ReservationService {
             }
 
     public Reservation approve(Reservation reservation, Actor approver) {
-        if (canApproveRestrictedReservationExcludingRequester(reservation, approver)) {
+        if (reservation.status() == Status.SOLICITADA && canApproveRestrictedReservationExcludingRequester(reservation, approver)) {
             reservation.setStatus(Status.APROVADA);
         }
         return reservation;
@@ -59,8 +61,9 @@ public class ReservationService {
             Reservation reservation,
             Actor approver) {
         return reservation.resource().restricted()
-                && approver.role() == Role.RESPONSAVEL
-                && !reservation.requester().id().equals(approver.id());
+            ? approver.role() == Role.RESPONSAVEL
+                && !reservation.requester().id().equals(approver.id())
+            : approver.role() == Role.RESPONSAVEL;
     }
 
     public enum Role {

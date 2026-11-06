@@ -1,6 +1,5 @@
 package com.example.educationalqualityproject.service;
 
-import com.example.educationalqualityproject.entity.AcademicPeriod;
 import com.example.educationalqualityproject.entity.AcademicSchedule;
 import com.example.educationalqualityproject.entity.ManagedResource;
 import com.example.educationalqualityproject.entity.ResourceAllocationRequest;
@@ -12,6 +11,7 @@ import com.example.educationalqualityproject.repository.ManagedResourceRepositor
 import com.example.educationalqualityproject.repository.ResourceBlockRepository;
 import com.example.educationalqualityproject.repository.TeacherAvailabilityRepository;
 import com.example.educationalqualityproject.repository.TeacherRepository;
+import com.example.educationalqualityproject.reservation.ReservationStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,6 +23,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,9 +51,27 @@ class ResourcePlanningServiceTest {
     private AcademicPeriodRepository periodRepository;
     @Mock
     private TeacherRepository teacherRepository;
+        @Mock
+        private ReservationStore reservationStore;
 
     @InjectMocks
     private ResourcePlanningService service;
+
+    @Test
+    void shouldIncludeSqlReservationsInAvailableMaterialQuantity() {
+        ManagedResource projector = material("projector-1", 5);
+        service.setReservationStore(reservationStore);
+        when(resourceRepository.findById("projector-1")).thenReturn(Optional.of(projector));
+        when(scheduleRepository.findAll()).thenReturn(List.of());
+        when(reservationStore.findActiveMaterialReservations(eq("projector-1"), any(Instant.class),
+                any(Instant.class))).thenReturn(List.of(new ReservationStore.MaterialInterval(
+                        Instant.parse("2026-03-02T10:15:00Z"), Instant.parse("2026-03-02T10:30:00Z"), 2)));
+
+        int available = service.getAvailableMaterialQuantity("projector-1",
+                LocalDateTime.parse("2026-03-02T10:00:00"), LocalDateTime.parse("2026-03-02T11:00:00"));
+
+        assertEquals(3, available);
+    }
 
     @Test
     void shouldAllocateRoomAndMaterialsToScheduleActivity() {
@@ -78,6 +98,8 @@ class ResourcePlanningServiceTest {
 
         assertEquals("room-1", result.getActivities().get(0).getRoomResourceId());
         assertEquals(2, result.getActivities().get(0).getMaterials().get(0).getQuantity());
+        assertEquals(2, result.getVersionNumber());
+        assertEquals(2, result.getVersions().size());
         verify(scheduleRepository).save(schedule);
     }
 

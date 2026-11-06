@@ -11,8 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -144,18 +146,107 @@ public class AcademicPlanningApiController {
     }
 
     @PostMapping("/schedules")
-    public ResponseEntity<AcademicSchedule> createAcademicSchedule(@RequestBody AcademicSchedule schedule) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(academicPlanningService.saveAcademicSchedule(null, schedule));
+    public ResponseEntity<AcademicSchedule> createAcademicSchedule(@RequestBody AcademicSchedule schedule,
+                                                                   @RequestParam(defaultValue = "sistema") String actor) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(academicPlanningService.saveAcademicSchedule(null, schedule, actor, null));
     }
 
     @PutMapping("/schedules/{id}")
-    public AcademicSchedule updateAcademicSchedule(@PathVariable String id, @RequestBody AcademicSchedule schedule) {
-        return academicPlanningService.saveAcademicSchedule(id, schedule);
+    public AcademicSchedule updateAcademicSchedule(@PathVariable String id, @RequestBody AcademicSchedule schedule,
+                                                   @RequestParam(defaultValue = "sistema") String actor,
+                                                   @RequestParam Integer expectedVersion) {
+        return academicPlanningService.saveAcademicSchedule(id, schedule, actor, expectedVersion);
+    }
+
+    @GetMapping("/schedules/{id}/versions")
+    public List<AcademicSchedule.ScheduleVersion> getScheduleVersions(@PathVariable String id) {
+        return academicPlanningService.getScheduleVersions(id);
+    }
+
+    @GetMapping("/schedules/{id}/versions/compare")
+    public List<AcademicSchedule.ScheduleChange> compareScheduleVersions(
+            @PathVariable String id, @RequestParam int fromVersion, @RequestParam int toVersion) {
+        return academicPlanningService.compareScheduleVersions(id, fromVersion, toVersion);
+    }
+
+    @PostMapping("/schedules/{id}/submit-for-approval")
+    public AcademicSchedule submitScheduleForApproval(@PathVariable String id, @RequestParam String actor) {
+        return academicPlanningService.submitScheduleForApproval(id, actor);
+    }
+
+    @PostMapping("/schedules/{id}/approve")
+    public AcademicSchedule approveSchedule(@PathVariable String id, @RequestParam String actor) {
+        return academicPlanningService.approveSchedule(id, actor);
+    }
+
+    @PostMapping("/schedules/{id}/reject")
+    public AcademicSchedule rejectSchedule(@PathVariable String id, @RequestParam String actor,
+                                           @RequestParam String justification) {
+        return academicPlanningService.rejectSchedule(id, actor, justification);
+    }
+
+    @PostMapping("/schedules/{id}/publish")
+    public AcademicSchedule publishSchedule(@PathVariable String id, @RequestParam String actor) {
+        return academicPlanningService.publishSchedule(id, actor);
+    }
+
+    @GetMapping("/schedules/{id}/adjustment-requests")
+    public List<AcademicSchedule.AdjustmentRequest> getScheduleAdjustmentRequests(@PathVariable String id) {
+        return academicPlanningService.getScheduleAdjustmentRequests(id);
+    }
+
+    @PostMapping("/schedules/{id}/adjustment-requests")
+    public ResponseEntity<AcademicSchedule.AdjustmentRequest> requestScheduleAdjustment(
+            @PathVariable String id, @RequestBody AcademicSchedule.AdjustmentRequest request) {
+        AcademicSchedule.AdjustmentRequest saved = academicPlanningService.requestScheduleAdjustment(
+                id, request.getRequester(), request.getActivityId(), request.getDescription());
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    @PatchMapping("/schedules/{id}/adjustment-requests/{requestId}")
+    public AcademicSchedule.AdjustmentRequest respondToAdjustment(
+            @PathVariable String id, @PathVariable String requestId, @RequestParam String actor,
+            @RequestParam String decision, @RequestParam String response) {
+        return academicPlanningService.respondToAdjustment(id, requestId, actor, decision, response);
+    }
+
+    @GetMapping("/schedules/{id}/notifications")
+    public List<AcademicSchedule.ScheduleNotification> getScheduleNotifications(
+            @PathVariable String id, @RequestParam String recipient) {
+        return academicPlanningService.getScheduleNotifications(id, recipient);
+    }
+
+    @PatchMapping("/schedules/{id}/notifications/{notificationId}/read")
+    public AcademicSchedule markNotificationRead(@PathVariable String id, @PathVariable String notificationId,
+                                                 @RequestParam String recipient) {
+        return academicPlanningService.markNotificationRead(id, notificationId, recipient);
+    }
+
+    @GetMapping("/schedules/{id}/audit")
+    public List<AcademicSchedule.ScheduleAuditEvent> getScheduleAudit(@PathVariable String id) {
+        return academicPlanningService.getScheduleAudit(id);
+    }
+
+    @GetMapping("/schedule-reports")
+    public List<AcademicSchedule.ScheduleReport> getScheduleReport(
+            @RequestParam(required = false) String academicPeriodId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String teacherId,
+            @RequestParam(required = false) String classId,
+            @RequestParam(required = false) String roomResourceId) {
+        return academicPlanningService.getScheduleReport(
+                academicPeriodId, status, teacherId, classId, roomResourceId);
     }
 
     @DeleteMapping("/schedules/{id}")
     public ResponseEntity<Void> deleteAcademicSchedule(@PathVariable String id) {
         academicPlanningService.deleteAcademicSchedule(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/schedules/{id}/published")
+    public AcademicSchedule.ScheduleVersion getPublishedScheduleVersion(@PathVariable String id) {
+        return academicPlanningService.getPublishedScheduleVersion(id);
     }
 }

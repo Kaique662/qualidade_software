@@ -1,5 +1,7 @@
 # Resultado de desempenho - Rodada 01
 
+> Atualização em 2026-11-06: esta evidência registra uma rodada histórica anterior à API de reservas. O código agora contém `/api/reservations` e PostgreSQL/Flyway opcionais, mas nenhum novo JTL foi produzido; a decisão de desempenho continua inconclusiva.
+
 ## Decisão: inconclusivo
 
 A rodada não foi executada. Não existe `perf/resultados/rodada-01.jtl` nem `perf/relatorio-01/index.html`; portanto, não há amostras para calcular percentis, vazão ou taxa de erro. Nenhuma afirmação de desempenho é feita sobre produção ou sobre a aplicação em execução.
@@ -52,7 +54,7 @@ Nenhum valor foi arredondado ou inferido a partir de dados ausentes. Não há co
 
 ## Hipótese de gargalo
 
-A hipótese sustentada pelos dados é que o gargalo atual está na **prontidão do ambiente de medição**, não em uma operação de runtime: JMeter ausente, conexão local em `127.0.0.1:8080` recusada e endpoints de login/disponibilidade/reserva não implementados neste checkout. Esses fatos explicam a ausência de JTL, mas não permitem identificar nem inferir um gargalo de desempenho da aplicação.
+A hipótese sustentada pelos dados da rodada é que o gargalo estava na **prontidão do ambiente de medição**, não em uma operação de runtime: JMeter ausente, conexão local em `127.0.0.1:8080` recusada e endpoints ainda não implementados naquele checkout. A implementação posterior não altera a ausência de amostras nem permite inferir um gargalo de desempenho.
 
 ## Próximo experimento
 

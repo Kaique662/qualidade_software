@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
+<head><title>Núcleo | Minha jornada</title></head>
+<body>
+<div id="content" class="portal-page">
+    <section class="welcome-band professor-welcome">
+        <div class="welcome-copy">
+            <p class="eyebrow eyebrow-light"><span class="eyebrow-dot"></span> ÁREA DO PROFESSOR</p>
+            <h1 th:text="${portalUser.displayName()}">Marcos Vinícius Lima</h1>
+            <p>Consulte sua jornada acadêmica e acompanhe os próximos passos do período letivo.</p>
+        </div>
+        <div class="welcome-symbol" aria-hidden="true"><i class="bi bi-calendar2-week"></i><span>02</span></div>
+    </section>
+
+    <section class="portal-section" aria-labelledby="teacher-work-title">
+        <div class="section-heading"><div><p class="eyebrow">SEU ESPAÇO</p><h2 id="teacher-work-title">Planejamento docente</h2></div><span class="section-count"><span class="status-pip"></span> Perfil professor</span></div>
+        <div class="portal-grid">
+            <article class="portal-panel availability-panel" id="availability">
+                <span class="portal-icon"><i class="bi bi-clock-history"></i></span>
+                <p class="eyebrow">DISPONIBILIDADE</p>
+                <h3>Seus horários possíveis</h3>
+                <p>Informe períodos disponíveis e impedimentos para apoiar a montagem da grade.</p>
+                <span class="portal-status"><i class="bi bi-link-45deg"></i> Vincule este acesso a um cadastro docente para enviar horários.</span>
+            </article>
+            <article class="portal-panel schedule-panel" id="schedule">
+                <span class="portal-icon"><i class="bi bi-calendar3"></i></span>
+                <p class="eyebrow">GRADE ACADÊMICA</p>
+                <h3>Sua agenda de aulas</h3>
+                <p>Consulte sala, duração e recursos assim que uma grade publicada estiver vinculada ao seu cadastro.</p>
+                <span class="portal-status"><i class="bi bi-info-circle"></i> Nenhuma grade vinculada a este acesso.</span>
+            </article>
+        </div>
+    </section>
+
+    <section class="persona-quote"><span class="quote-mark">“</span><p>Quero informar meus horários possíveis uma vez e confiar que a grade publicada é a que vale.</p><span class="quote-credit">PERSONA 02 <i class="bi bi-dot"></i> PROFESSOR</span></section>
+</div>
+</body>
+</html>

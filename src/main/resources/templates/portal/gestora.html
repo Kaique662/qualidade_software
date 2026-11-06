@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
+<head><title>Núcleo | Espaços e materiais</title></head>
+<body>
+<div id="content" class="portal-page resource-dashboard" data-resource-dashboard>
+    <section class="welcome-band manager-welcome">
+        <div class="welcome-copy">
+            <p class="eyebrow eyebrow-light"><span class="eyebrow-dot"></span> OPERAÇÕES ACADÊMICAS</p>
+            <h1>Espaços e materiais</h1>
+            <p>Inventário, condição operacional e disponibilidade dos recursos compartilhados.</p>
+        </div>
+        <div class="welcome-symbol" aria-hidden="true"><i class="bi bi-boxes"></i><span>03</span></div>
+    </section>
+
+    <section class="portal-section" aria-labelledby="inventory-title">
+        <div class="section-heading"><div><p class="eyebrow">INVENTÁRIO</p><h2 id="inventory-title">Recursos cadastrados</h2></div><span class="section-count"><span class="status-pip"></span> Dados atualizados ao abrir</span></div>
+        <div class="resource-stats" aria-live="polite">
+            <div class="resource-stat"><span>Salas</span><strong data-count="rooms">—</strong></div>
+            <div class="resource-stat"><span>Materiais</span><strong data-count="materials">—</strong></div>
+            <div class="resource-stat"><span>Em manutenção</span><strong data-count="maintenance">—</strong></div>
+        </div>
+
+        <details class="resource-create">
+            <summary><span><i class="bi bi-plus-lg"></i> Cadastrar recurso</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+            <form class="resource-form" data-resource-form>
+                <div class="resource-form-grid">
+                    <label class="field-group"><span>Código</span><input name="code" required maxlength="40" placeholder="Ex.: SALA-101"></label>
+                    <label class="field-group"><span>Nome</span><input name="name" required maxlength="120" placeholder="Nome do recurso"></label>
+                    <label class="field-group"><span>Tipo</span><select name="type" required data-resource-type><option value="ROOM">Sala</option><option value="MATERIAL">Material</option></select></label>
+                    <label class="field-group"><span>Localização</span><input name="location" required maxlength="120" placeholder="Bloco ou unidade"></label>
+                    <label class="field-group" data-room-field><span>Capacidade</span><input name="capacity" type="number" min="1" value="1" required></label>
+                    <label class="field-group" data-material-field hidden><span>Quantidade total</span><input name="totalQuantity" type="number" min="1" value="1"></label>
+                    <label class="field-group" data-material-field hidden><span>Unidade</span><input name="unit" maxlength="40" placeholder="Ex.: unidade"></label>
+                </div>
+                <div class="resource-form-actions"><p class="resource-feedback" data-form-feedback role="status"></p><button class="primary-button" type="submit"><i class="bi bi-check2"></i> Salvar recurso</button></div>
+            </form>
+        </details>
+
+        <div class="directory-toolbar resource-toolbar">
+            <label class="search-field"><i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">Buscar recursos</span><input type="search" placeholder="Buscar por código, nome ou local" data-resource-search></label>
+            <label class="resource-filter"><span class="visually-hidden">Filtrar por tipo</span><select data-resource-filter><option value="">Todos os tipos</option><option value="ROOM">Salas</option><option value="MATERIAL">Materiais</option></select></label>
+        </div>
+        <p class="resource-feedback" data-resource-feedback role="status" aria-live="polite">Carregando inventário...</p>
+        <div class="table-frame" data-resource-table hidden>
+            <table class="data-table resource-table">
+                <thead><tr><th>RECURSO</th><th>TIPO</th><th>LOCALIZAÇÃO</th><th>CAPACIDADE / QUANTIDADE</th><th>CONDIÇÃO</th></tr></thead>
+                <tbody data-resource-rows></tbody>
+            </table>
+        </div>
+        <p class="no-search-results" data-resource-empty hidden>Nenhum recurso corresponde ao filtro.</p>
+    </section>
+
+    <section class="manager-note"><span class="note-icon"><i class="bi bi-cone-striped"></i></span><div><p class="eyebrow">MANUTENÇÃO E BLOQUEIOS</p><p>Marque um recurso como “Em manutenção” para sinalizar indisponibilidade operacional. O histórico detalhado de bloqueios continua disponível pela API de planejamento.</p></div></section>
+    <section class="persona-quote"><span class="quote-mark">“</span><p>O sistema precisa conhecer a condição real do recurso, não apenas mostrar um horário vazio.</p><span class="quote-credit">PERSONA 03 <i class="bi bi-dot"></i> GESTORA DE ESPAÇOS E MATERIAIS</span></section>
+</div>
+</body>
+</html>

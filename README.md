@@ -85,8 +85,25 @@ java -jar target/educational-quality-project-0.0.1-SNAPSHOT.jar
 
 ### Acessando a Aplicação
 
-Após iniciar a aplicação, você pode acessá-la em:
-- Página principal: http://localhost:8080
+Antes de iniciar, configure uma senha local para cada perfil. Os nomes de usuário padrão são `admin`, `professor` e `gestora`:
+
+```bash
+export APP_ADMIN_PASSWORD='admin2'
+export APP_PROFESSOR_PASSWORD='prof2'
+export APP_MANAGER_PASSWORD='mama2'
+./mvnw spring-boot:run
+```
+
+Opcionalmente, os nomes de usuário podem ser definidos com `APP_ADMIN_USERNAME`, `APP_PROFESSOR_USERNAME` e `APP_MANAGER_USERNAME`. As senhas não têm valor padrão e não devem ser salvas no repositório. Este login local de demonstração não substitui um provedor de identidade para produção.
+
+Depois de iniciar a aplicação, acesse http://localhost:8080/login. O perfil é escolhido pelas credenciais usadas:
+- `admin`: painel com cadastro de estudantes e professores
+- `professor`: painel baseado na persona 02
+- `gestora`: painel de espaços e materiais da persona 03
+
+As telas de estudantes e recursos precisam de uma conexão MongoDB disponível, configurada por `SPRING_DATA_MONGODB_URI` ou em `application.properties`.
+
+Rotas diretas das áreas:
 - Página de alunos: http://localhost:8080/students
 - Página de professores: http://localhost:8080/teachers
 

@@ -27,7 +27,11 @@ A taxa de erro inesperado deve ser inferior a 1% das amostras. Para este cálcul
 
 ## Contrato HTTP aprovado para o experimento local
 
+<<<<<<< HEAD
 O plano `perf/reservas.jmx` usa estes endpoints, disponíveis somente na aplicação dedicada de desempenho:
+=======
+A API de reservas (`/api/reservations`) e a persistência PostgreSQL opcional foram adicionadas em 2026-11-06. O plano JMeter em `perf/reservas.jmx` foi escrito antes desse fluxo e seus caminhos/contratos ainda precisam ser comparados com a API atual; não executá-lo sem essa revisão. Para uma rodada, habilitar `reservations.datasource.url`, aplicar Flyway, preparar localmente sala, professor, material, intervalo e identidades fictícias, e adaptar a autenticação simulada, pois autenticação real ainda não existe.
+>>>>>>> 6b3f3667c72f3e80db567a4cbee69bee3441b92f
 
 | Operação | Contrato |
 | --- | --- |

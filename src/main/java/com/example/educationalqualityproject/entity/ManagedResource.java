@@ -23,6 +23,7 @@ public class ManagedResource {
     private String unit;
     private List<String> features = new ArrayList<>();
     private ResourceState state = ResourceState.AVAILABLE;
+    private boolean restricted;
     private int preparationBufferMinutes;
     private int cleanupBufferMinutes;
 
@@ -48,6 +49,8 @@ public class ManagedResource {
     public void setFeatures(List<String> features) { this.features = features; }
     public ResourceState getState() { return state; }
     public void setState(ResourceState state) { this.state = state; }
+    public boolean isRestricted() { return restricted; }
+    public void setRestricted(boolean restricted) { this.restricted = restricted; }
     public int getPreparationBufferMinutes() { return preparationBufferMinutes; }
     public void setPreparationBufferMinutes(int preparationBufferMinutes) { this.preparationBufferMinutes = preparationBufferMinutes; }
     public int getCleanupBufferMinutes() { return cleanupBufferMinutes; }

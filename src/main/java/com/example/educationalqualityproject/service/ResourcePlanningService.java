@@ -13,13 +13,15 @@ import com.example.educationalqualityproject.repository.ManagedResourceRepositor
 import com.example.educationalqualityproject.repository.ResourceBlockRepository;
 import com.example.educationalqualityproject.repository.TeacherAvailabilityRepository;
 import com.example.educationalqualityproject.repository.TeacherRepository;
+import com.example.educationalqualityproject.reservation.ReservationResourceValidator;
+import com.example.educationalqualityproject.reservation.ReservationStore;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +33,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 @Service
-public class ResourcePlanningService {
+public class ResourcePlanningService implements ReservationResourceValidator {
 
     private final ManagedResourceRepository resourceRepository;
     private final TeacherAvailabilityRepository availabilityRepository;
@@ -39,6 +41,7 @@ public class ResourcePlanningService {
     private final AcademicScheduleRepository scheduleRepository;
     private final AcademicPeriodRepository periodRepository;
     private final TeacherRepository teacherRepository;
+    private ReservationStore reservationStore;
 
     public ResourcePlanningService(ManagedResourceRepository resourceRepository,
                                    TeacherAvailabilityRepository availabilityRepository,
@@ -52,6 +55,11 @@ public class ResourcePlanningService {
         this.scheduleRepository = scheduleRepository;
         this.periodRepository = periodRepository;
         this.teacherRepository = teacherRepository;
+    }
+
+    @Autowired(required = false)
+    public void setReservationStore(ReservationStore reservationStore) {
+        this.reservationStore = reservationStore;
     }
 
     public List<ManagedResource> searchResources(String code, String name,
@@ -70,7 +78,7 @@ public class ResourcePlanningService {
                 .filter(resource -> startsAt == null || isAvailable(resource, startsAt, endsAt, 1, null, null))
                 .peek(resource -> {
                     if (resource.getType() == ManagedResource.ResourceType.MATERIAL && startsAt != null) {
-                        resource.setAvailableQuantity(availableQuantity(resource, startsAt, endsAt));
+                        resource.setAvailableQuantity(availableQuantity(resource, startsAt, endsAt, true));
                     }
                 })
                 .toList();
@@ -80,6 +88,70 @@ public class ResourcePlanningService {
         requireText(id, "Identificador do recurso é obrigatório");
         return resourceRepository.findById(id)
                 .orElseThrow(() -> notFound("Recurso não encontrado"));
+    }
+
+    public ManagedResource validateReservationResource(String id, LocalDateTime startsAt,
+                                                        LocalDateTime endsAt, int quantity) {
+        validateInterval(startsAt, endsAt);
+        ManagedResource resource = getResource(id);
+        requireResourceAvailable(resource, startsAt, endsAt, quantity, null, null);
+        return resource;
+    }
+
+    public int getAvailableMaterialQuantity(String id, LocalDateTime startsAt, LocalDateTime endsAt) {
+        validateInterval(startsAt, endsAt);
+        ManagedResource resource = getResource(id);
+        if (resource.getType() != ManagedResource.ResourceType.MATERIAL) {
+            throw badRequest("O recurso informado não é um material");
+        }
+        return availableQuantity(resource, startsAt, endsAt, true);
+    }
+
+    @Override
+    public List<ReservationStore.MaterialInterval> getMaterialReservations(
+            String id, LocalDateTime startsAt, LocalDateTime endsAt) {
+        validateInterval(startsAt, endsAt);
+        ManagedResource resource = getResource(id);
+        if (resource.getType() != ManagedResource.ResourceType.MATERIAL) {
+            throw badRequest("O recurso informado não é um material");
+        }
+        LocalDateTime candidateStart = bufferedStart(resource, startsAt);
+        LocalDateTime candidateEnd = bufferedEnd(resource, endsAt);
+        List<ReservationStore.MaterialInterval> reservations = new ArrayList<>();
+        for (AcademicSchedule schedule : scheduleRepository.findAll()) {
+            if (schedule.getActivities() == null) {
+                continue;
+            }
+            for (AcademicSchedule.ScheduledActivity activity : schedule.getActivities()) {
+                if (activity.getStartsAt() == null || activity.getEndsAt() == null || activity.getMaterials() == null) {
+                    continue;
+                }
+                LocalDateTime reservationStart = bufferedStart(resource, activity.getStartsAt());
+                LocalDateTime reservationEnd = bufferedEnd(resource, activity.getEndsAt());
+                if (!overlaps(candidateStart, candidateEnd, reservationStart, reservationEnd)) {
+                    continue;
+                }
+                activity.getMaterials().stream()
+                        .filter(material -> id.equals(material.getResourceId()))
+                        .forEach(material -> reservations.add(new ReservationStore.MaterialInterval(
+                                reservationStart.toInstant(ZoneOffset.UTC), reservationEnd.toInstant(ZoneOffset.UTC),
+                                material.getQuantity())));
+            }
+        }
+        return reservations;
+    }
+
+    public void validateTeacherReservation(String teacherId, String academicPeriodId,
+                                           LocalDateTime startsAt, LocalDateTime endsAt) {
+        requireReference(teacherRepository.existsById(teacherId), "Professor");
+        requireText(academicPeriodId, "Período letivo do professor é obrigatório");
+        validateInterval(startsAt, endsAt);
+        AcademicSchedule.ScheduledActivity activity = new AcademicSchedule.ScheduledActivity();
+        activity.setTeacherIds(List.of(teacherId));
+        activity.setStartsAt(startsAt);
+        activity.setEndsAt(endsAt);
+        validateTeacherConflicts(null, activity);
+        validateTeacherAvailability(academicPeriodId, activity);
     }
 
     public ManagedResource saveResource(String id, ManagedResource resource) {
@@ -264,12 +336,20 @@ public class ResourcePlanningService {
 
     public AcademicSchedule allocateActivity(String scheduleId, String activityId,
                                              ResourceAllocationRequest request) {
+        return allocateActivity(scheduleId, activityId, request, "sistema", null);
+    }
+
+    public AcademicSchedule allocateActivity(String scheduleId, String activityId,
+                                             ResourceAllocationRequest request, String actor,
+                                             Integer expectedVersion) {
         if (request == null) {
             throw badRequest("Dados de alocação são obrigatórios");
         }
         requireText(request.getRoomResourceId(), "Sala da atividade é obrigatória");
+        requireText(actor, "Identificador do responsável é obrigatório");
         AcademicSchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> notFound("Grade não encontrada"));
+        requireEditableSchedule(schedule, expectedVersion);
         AcademicSchedule.ScheduledActivity activity = findActivity(schedule, activityId);
         if (activity.getStartsAt() == null || activity.getEndsAt() == null) {
             throw badRequest("Atividade precisa ter horário antes da alocação");
@@ -318,8 +398,10 @@ public class ResourcePlanningService {
             validatedMaterials.add(assignment);
         }
 
+        ensureScheduleVersion(schedule, actor);
         activity.setRoomResourceId(room.getId());
         activity.setMaterials(validatedMaterials);
+        recordScheduleRevision(schedule, actor, "ALOCACAO_ATUALIZADA");
         scheduleRepository.save(schedule);
         return schedule;
     }
@@ -378,12 +460,96 @@ public class ResourcePlanningService {
     }
 
     public AcademicSchedule clearActivityAllocation(String scheduleId, String activityId) {
+        return clearActivityAllocation(scheduleId, activityId, "sistema", null);
+    }
+
+    public AcademicSchedule clearActivityAllocation(String scheduleId, String activityId,
+                                                    String actor, Integer expectedVersion) {
         AcademicSchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> notFound("Grade não encontrada"));
+        requireText(actor, "Identificador do responsável é obrigatório");
+        requireEditableSchedule(schedule, expectedVersion);
         AcademicSchedule.ScheduledActivity activity = findActivity(schedule, activityId);
+        ensureScheduleVersion(schedule, actor);
         activity.setRoomResourceId(null);
         activity.setMaterials(new ArrayList<>());
+        recordScheduleRevision(schedule, actor, "ALOCACAO_REMOVIDA");
         return scheduleRepository.save(schedule);
+    }
+
+    private void requireEditableSchedule(AcademicSchedule schedule, Integer expectedVersion) {
+        if (!"RASCUNHO".equals(schedule.getStatus())) {
+            throw conflict("Alocações só podem ser alteradas enquanto a grade está em rascunho");
+        }
+        if (expectedVersion != null && expectedVersion != schedule.getVersionNumber()) {
+            throw conflict("A grade foi alterada desde a versão consultada; atualize antes de salvar");
+        }
+    }
+
+    private void ensureScheduleVersion(AcademicSchedule schedule, String actor) {
+        if (schedule.getVersions() == null) {
+            schedule.setVersions(new ArrayList<>());
+        }
+        if (schedule.getVersions().isEmpty()) {
+            schedule.setVersionNumber(Math.max(1, schedule.getVersionNumber()));
+            schedule.getVersions().add(createScheduleVersion(schedule, actor));
+        } else if (schedule.getVersionNumber() == 0) {
+            schedule.setVersionNumber(schedule.getVersions().stream()
+                    .mapToInt(AcademicSchedule.ScheduleVersion::getNumber).max().orElse(1));
+        }
+        if (schedule.getAuditEvents() == null) {
+            schedule.setAuditEvents(new ArrayList<>());
+        }
+    }
+
+    private void recordScheduleRevision(AcademicSchedule schedule, String actor, String action) {
+        schedule.setVersionNumber(schedule.getVersionNumber() + 1);
+        schedule.getVersions().add(createScheduleVersion(schedule, actor));
+        AcademicSchedule.ScheduleAuditEvent event = new AcademicSchedule.ScheduleAuditEvent();
+        event.setAction(action);
+        event.setActor(actor);
+        event.setPreviousStatus(schedule.getStatus());
+        event.setNewStatus(schedule.getStatus());
+        event.setDetails("Versão " + schedule.getVersionNumber());
+        event.setOccurredAt(LocalDateTime.now());
+        schedule.getAuditEvents().add(event);
+    }
+
+    private AcademicSchedule.ScheduleVersion createScheduleVersion(AcademicSchedule schedule, String actor) {
+        AcademicSchedule.ScheduleVersion version = new AcademicSchedule.ScheduleVersion();
+        version.setNumber(schedule.getVersionNumber());
+        version.setName(schedule.getName());
+        version.setAcademicPeriodId(schedule.getAcademicPeriodId());
+        version.setCreatedBy(actor);
+        version.setCreatedAt(LocalDateTime.now());
+        version.setActivities(schedule.getActivities().stream().map(this::copyActivity).toList());
+        return version;
+    }
+
+    private AcademicSchedule.ScheduledActivity copyActivity(AcademicSchedule.ScheduledActivity source) {
+        AcademicSchedule.ScheduledActivity copy = new AcademicSchedule.ScheduledActivity();
+        copy.setId(source.getId());
+        copy.setCourseId(source.getCourseId());
+        copy.setClassId(source.getClassId());
+        copy.setSubjectId(source.getSubjectId());
+        copy.setTeacherIds(source.getTeacherIds() == null ? new ArrayList<>() : new ArrayList<>(source.getTeacherIds()));
+        copy.setStartsAt(source.getStartsAt());
+        copy.setEndsAt(source.getEndsAt());
+        copy.setRequiredRoomCapacity(source.getRequiredRoomCapacity());
+        copy.setRequiredRoomFeatures(source.getRequiredRoomFeatures() == null
+                ? new ArrayList<>() : new ArrayList<>(source.getRequiredRoomFeatures()));
+        copy.setRoomResourceId(source.getRoomResourceId());
+        List<AcademicSchedule.MaterialAssignment> materials = new ArrayList<>();
+        if (source.getMaterials() != null) {
+            for (AcademicSchedule.MaterialAssignment material : source.getMaterials()) {
+                AcademicSchedule.MaterialAssignment materialCopy = new AcademicSchedule.MaterialAssignment();
+                materialCopy.setResourceId(material.getResourceId());
+                materialCopy.setQuantity(material.getQuantity());
+                materials.add(materialCopy);
+            }
+        }
+        copy.setMaterials(materials);
+        return copy;
     }
 
     private void validateAvailabilityWindow(AcademicPeriod period, TeacherAvailability window) {
@@ -529,6 +695,13 @@ public class ResourcePlanningService {
                 }
             }
         }
+        if (resource.getType() == ManagedResource.ResourceType.MATERIAL && reservationStore != null) {
+            reservationStore.findActiveMaterialReservations(resource.getId(), bufferedStart.toInstant(ZoneOffset.UTC),
+                    bufferedEnd.toInstant(ZoneOffset.UTC))
+                .forEach(interval -> reservations.add(new QuantityInterval(
+                    LocalDateTime.ofInstant(interval.startsAt(), ZoneOffset.UTC),
+                    LocalDateTime.ofInstant(interval.endsAt(), ZoneOffset.UTC), interval.quantity())));
+        }
         int capacity = resource.getType() == ManagedResource.ResourceType.ROOM ? 1 : resource.getTotalQuantity();
         if (capacity == 0 || maxConcurrentQuantity(reservations, bufferedStart, bufferedEnd, quantity) > capacity) {
             throw conflict(resource.getType() == ManagedResource.ResourceType.ROOM
@@ -571,7 +744,8 @@ public class ResourcePlanningService {
         return maximum;
     }
 
-    private int availableQuantity(ManagedResource resource, LocalDateTime startsAt, LocalDateTime endsAt) {
+    private int availableQuantity(ManagedResource resource, LocalDateTime startsAt, LocalDateTime endsAt,
+                                  boolean includeSqlReservations) {
         LocalDateTime candidateStart = bufferedStart(resource, startsAt);
         LocalDateTime candidateEnd = bufferedEnd(resource, endsAt);
         TreeMap<LocalDateTime, Integer> events = new TreeMap<>();
@@ -595,6 +769,13 @@ public class ResourcePlanningService {
                                 reservedEnd.isAfter(candidateEnd) ? candidateEnd : reservedEnd,
                                 material.getQuantity()));
             }
+        }
+        if (includeSqlReservations && reservationStore != null) {
+            reservationStore.findActiveMaterialReservations(resource.getId(), candidateStart.toInstant(ZoneOffset.UTC),
+                    candidateEnd.toInstant(ZoneOffset.UTC))
+                .forEach(interval -> addEvents(events,
+                    LocalDateTime.ofInstant(interval.startsAt(), ZoneOffset.UTC),
+                    LocalDateTime.ofInstant(interval.endsAt(), ZoneOffset.UTC), interval.quantity()));
         }
         int reserved = 0;
         int maximum = 0;

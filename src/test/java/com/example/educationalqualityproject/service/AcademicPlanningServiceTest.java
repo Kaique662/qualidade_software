@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -118,6 +119,13 @@ class AcademicPlanningServiceTest {
         AcademicSchedule schedule = new AcademicSchedule();
         schedule.setName("Grade 2026.1");
         schedule.setAcademicPeriodId("period-1");
+        schedule.setStatus("PUBLICADA");
+        AcademicSchedule.ScheduleVersion forgedVersion = new AcademicSchedule.ScheduleVersion();
+        forgedVersion.setNumber(99);
+        schedule.setVersions(List.of(forgedVersion));
+        AcademicSchedule.ScheduleAuditEvent forgedEvent = new AcademicSchedule.ScheduleAuditEvent();
+        forgedEvent.setAction("EVENTO_FORJADO");
+        schedule.setAuditEvents(List.of(forgedEvent));
         AcademicSchedule.ScheduledActivity activity = new AcademicSchedule.ScheduledActivity();
         activity.setCourseId("course-1");
         activity.setClassId("class-1");
@@ -137,7 +145,136 @@ class AcademicPlanningServiceTest {
         AcademicSchedule saved = service.saveAcademicSchedule(null, schedule);
 
         assertEquals("RASCUNHO", saved.getStatus());
+        assertEquals(1, saved.getVersionNumber());
+        assertEquals(1, saved.getVersions().size());
+        assertEquals("GRADE_CRIADA", saved.getAuditEvents().get(0).getAction());
         verify(academicScheduleRepository).save(schedule);
+    }
+
+    @Test
+    void shouldRequireApprovalBeforePublishingAndNotifyTeachers() {
+        AcademicSchedule schedule = workflowSchedule();
+        when(academicScheduleRepository.findById("schedule-1")).thenReturn(Optional.of(schedule));
+        when(academicScheduleRepository.save(any(AcademicSchedule.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.submitScheduleForApproval("schedule-1", "coordenadora");
+        assertEquals("PENDENTE_APROVACAO", schedule.getStatus());
+        service.approveSchedule("schedule-1", "diretora");
+        assertEquals("APROVADA", schedule.getStatus());
+        service.publishSchedule("schedule-1", "diretora");
+
+        assertEquals("PUBLICADA", schedule.getStatus());
+        assertEquals(1, schedule.getPublishedVersionNumber());
+        assertTrue(schedule.getNotifications().stream()
+                .anyMatch(notification -> "teacher-1".equals(notification.getRecipient())));
+        assertTrue(schedule.getAuditEvents().stream()
+                .anyMatch(event -> "GRADE_PUBLICADA".equals(event.getAction())
+                        && "diretora".equals(event.getActor())));
+    }
+
+    @Test
+    void shouldRejectPublishingDraftSchedule() {
+        AcademicSchedule schedule = workflowSchedule();
+        when(academicScheduleRepository.findById("schedule-1")).thenReturn(Optional.of(schedule));
+
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> service.publishSchedule("schedule-1", "diretora"));
+
+        assertEquals(409, error.getStatusCode().value());
+        verify(academicScheduleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldCompareIncludedRemovedAndChangedActivitiesBetweenVersions() {
+        AcademicSchedule schedule = workflowSchedule();
+        AcademicSchedule.ScheduleVersion previous = schedule.getVersions().get(0);
+        AcademicSchedule.ScheduledActivity removed = activity("removed-1", "teacher-1");
+        AcademicSchedule.ScheduledActivity changed = activity("changed-1", "teacher-1");
+        previous.setActivities(List.of(removed, changed));
+        AcademicSchedule.ScheduleVersion next = new AcademicSchedule.ScheduleVersion();
+        next.setNumber(2);
+        AcademicSchedule.ScheduledActivity changedCopy = activity("changed-1", "teacher-2");
+        AcademicSchedule.ScheduledActivity included = activity("included-1", "teacher-1");
+        next.setActivities(List.of(changedCopy, included));
+        schedule.getVersions().add(next);
+        when(academicScheduleRepository.findById("schedule-1")).thenReturn(Optional.of(schedule));
+
+        List<AcademicSchedule.ScheduleChange> changes =
+                service.compareScheduleVersions("schedule-1", 1, 2);
+
+        assertEquals(3, changes.size());
+        assertTrue(changes.stream().anyMatch(change -> "REMOVIDA".equals(change.getType())));
+        assertTrue(changes.stream().anyMatch(change -> "ALTERADA".equals(change.getType())));
+        assertTrue(changes.stream().anyMatch(change -> "INCLUIDA".equals(change.getType())));
+    }
+
+    @Test
+    void shouldRejectScheduleUpdateWhenExpectedVersionIsStale() {
+        AcademicSchedule existing = workflowSchedule();
+        existing.setVersionNumber(3);
+        AcademicSchedule update = new AcademicSchedule();
+        update.setName("Grade atualizada");
+        update.setAcademicPeriodId("period-1");
+        update.setActivities(List.of());
+        AcademicPeriod period = period("2026.1", LocalDate.parse("2026-02-01"), LocalDate.parse("2026-06-30"));
+        period.setId("period-1");
+        when(academicScheduleRepository.findById("schedule-1")).thenReturn(Optional.of(existing));
+        when(academicPeriodRepository.findById("period-1")).thenReturn(Optional.of(period));
+
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> service.saveAcademicSchedule("schedule-1", update, "coordenadora", 2));
+
+        assertEquals(409, error.getStatusCode().value());
+        verify(academicScheduleRepository, never()).save(any());
+    }
+
+        @Test
+        void shouldTrackAdjustmentRequestAndNotifyRequesterOfDecision() {
+        AcademicSchedule schedule = workflowSchedule();
+        when(academicScheduleRepository.findById("schedule-1")).thenReturn(Optional.of(schedule));
+        when(academicScheduleRepository.save(any(AcademicSchedule.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        AcademicSchedule.AdjustmentRequest request = service.requestScheduleAdjustment(
+            "schedule-1", "teacher-1", "activity-1", "Conflito com horário informado");
+        assertEquals("ABERTA", request.getStatus());
+        AcademicSchedule.AdjustmentRequest responded = service.respondToAdjustment(
+            "schedule-1", request.getId(), "coordenadora", "ACEITA", "Horário será revisado");
+        assertEquals("ACEITA", responded.getStatus());
+        assertEquals("coordenadora", responded.getRespondedBy());
+
+        List<AcademicSchedule.ScheduleNotification> notifications =
+            service.getScheduleNotifications("schedule-1", "teacher-1");
+        assertEquals(1, notifications.size());
+        service.markNotificationRead("schedule-1", notifications.get(0).getId(), "teacher-1");
+
+        assertTrue(notifications.get(0).isRead());
+        assertTrue(schedule.getAuditEvents().stream()
+            .anyMatch(event -> "AJUSTE_ACEITA".equals(event.getAction())));
+        }
+
+    private AcademicSchedule workflowSchedule() {
+        AcademicSchedule schedule = new AcademicSchedule();
+        schedule.setId("schedule-1");
+        schedule.setName("Grade 2026.1");
+        schedule.setAcademicPeriodId("period-1");
+        schedule.setVersionNumber(1);
+        AcademicSchedule.ScheduledActivity activity = activity("activity-1", "teacher-1");
+        schedule.setActivities(List.of(activity));
+        AcademicSchedule.ScheduleVersion version = new AcademicSchedule.ScheduleVersion();
+        version.setNumber(1);
+        version.setCreatedBy("coordenadora");
+        version.setActivities(List.of(activity));
+        schedule.setVersions(new java.util.ArrayList<>(List.of(version)));
+        return schedule;
+    }
+
+    private AcademicSchedule.ScheduledActivity activity(String id, String teacherId) {
+        AcademicSchedule.ScheduledActivity activity = new AcademicSchedule.ScheduledActivity();
+        activity.setId(id);
+        activity.setTeacherIds(List.of(teacherId));
+        return activity;
     }
 
     private AcademicPeriod period(String name, LocalDate startsOn, LocalDate endsOn) {

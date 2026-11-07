@@ -148,13 +148,17 @@ public class ResourcePlanningApiController {
     public AcademicSchedule allocateActivity(
             @PathVariable String scheduleId,
             @PathVariable String activityId,
-            @RequestBody ResourceAllocationRequest request) {
-        return resourcePlanningService.allocateActivity(scheduleId, activityId, request);
+            @RequestBody ResourceAllocationRequest request,
+            @RequestParam(defaultValue = "sistema") String actor,
+            @RequestParam Integer expectedVersion) {
+        return resourcePlanningService.allocateActivity(scheduleId, activityId, request, actor, expectedVersion);
     }
 
     @DeleteMapping("/schedules/{scheduleId}/activities/{activityId}/allocation")
     public AcademicSchedule clearActivityAllocation(
-            @PathVariable String scheduleId, @PathVariable String activityId) {
-        return resourcePlanningService.clearActivityAllocation(scheduleId, activityId);
+            @PathVariable String scheduleId, @PathVariable String activityId,
+            @RequestParam(defaultValue = "sistema") String actor,
+            @RequestParam Integer expectedVersion) {
+        return resourcePlanningService.clearActivityAllocation(scheduleId, activityId, actor, expectedVersion);
     }
 }

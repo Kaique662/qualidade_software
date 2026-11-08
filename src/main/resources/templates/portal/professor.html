@@ -2,7 +2,8 @@
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
 <head><title>Núcleo | Minha jornada</title></head>
 <body>
-<div id="content" class="portal-page">
+<div id="content" class="portal-page teacher-journey" data-teacher-portal
+    th:data-teacher-id="${portalUser.teacherId() ?: ''}">
     <section class="welcome-band professor-welcome">
         <div class="welcome-copy">
             <p class="eyebrow eyebrow-light"><span class="eyebrow-dot"></span> ÁREA DO PROFESSOR</p>
@@ -14,25 +15,67 @@
 
     <section class="portal-section" aria-labelledby="teacher-work-title">
         <div class="section-heading"><div><p class="eyebrow">SEU ESPAÇO</p><h2 id="teacher-work-title">Planejamento docente</h2></div><span class="section-count"><span class="status-pip"></span> Perfil professor</span></div>
-        <div class="portal-grid">
-            <article class="portal-panel availability-panel" id="availability">
-                <span class="portal-icon"><i class="bi bi-clock-history"></i></span>
-                <p class="eyebrow">DISPONIBILIDADE</p>
-                <h3>Seus horários possíveis</h3>
-                <p>Informe períodos disponíveis e impedimentos para apoiar a montagem da grade.</p>
-                <span class="portal-status"><i class="bi bi-link-45deg"></i> Vincule este acesso a um cadastro docente para enviar horários.</span>
-            </article>
-            <article class="portal-panel schedule-panel" id="schedule">
-                <span class="portal-icon"><i class="bi bi-calendar3"></i></span>
-                <p class="eyebrow">GRADE ACADÊMICA</p>
-                <h3>Sua agenda de aulas</h3>
-                <p>Consulte sala, duração e recursos assim que uma grade publicada estiver vinculada ao seu cadastro.</p>
-                <span class="portal-status"><i class="bi bi-info-circle"></i> Nenhuma grade vinculada a este acesso.</span>
-            </article>
+        <div class="teacher-tabs" role="tablist" aria-label="Jornada docente">
+            <button type="button" class="teacher-tab is-active" role="tab" aria-selected="true" data-teacher-tab="availability">Disponibilidade</button>
+            <button type="button" class="teacher-tab" role="tab" aria-selected="false" data-teacher-tab="schedule">Minha grade</button>
+            <button type="button" class="teacher-tab" role="tab" aria-selected="false" data-teacher-tab="requests">Solicitações</button>
+            <button type="button" class="teacher-tab" role="tab" aria-selected="false" data-teacher-tab="notifications">Notificações</button>
         </div>
+        <section class="teacher-panel" role="tabpanel" data-teacher-panel="availability">
+            <div class="teacher-work-grid">
+                <form class="teacher-form" data-availability-form>
+                    <div class="planning-form-heading"><i class="bi bi-clock-history"></i><div><h3>Registrar horário</h3><p>Disponibilidade ou impedimento</p></div></div>
+                    <label class="field-group"><span>Período letivo</span><select name="academicPeriodId" required data-teacher-periods></select></label>
+                    <div class="planning-fields-two">
+                        <label class="field-group"><span>Tipo</span><select name="type"><option value="AVAILABLE">Disponível</option><option value="UNAVAILABLE">Indisponível</option></select></label>
+                        <label class="field-group"><span>Classificação</span><select name="constraintKind"><option value="MANDATORY">Obrigatória</option><option value="PREFERENCE">Preferência</option></select></label>
+                    </div>
+                    <label class="teacher-recurring-toggle"><input type="checkbox" name="recurringWeekly" data-recurring-toggle><span>Repetir semanalmente</span></label>
+                    <div class="planning-fields-two" data-single-interval>
+                        <label class="field-group"><span>Início</span><input name="startsAt" type="datetime-local"></label>
+                        <label class="field-group"><span>Fim</span><input name="endsAt" type="datetime-local"></label>
+                    </div>
+                    <div class="planning-fields-two" data-weekly-interval hidden>
+                        <label class="field-group"><span>Válido de</span><input name="validFrom" type="date"></label>
+                        <label class="field-group"><span>Válido até</span><input name="validUntil" type="date"></label>
+                        <label class="field-group"><span>Início diário</span><input name="dailyStartsAt" type="time"></label>
+                        <label class="field-group"><span>Fim diário</span><input name="dailyEndsAt" type="time"></label>
+                        <fieldset class="weekday-picker"><legend>Dias da semana</legend>
+                            <label><input type="checkbox" name="weekdays" value="MONDAY">Seg</label><label><input type="checkbox" name="weekdays" value="TUESDAY">Ter</label><label><input type="checkbox" name="weekdays" value="WEDNESDAY">Qua</label><label><input type="checkbox" name="weekdays" value="THURSDAY">Qui</label><label><input type="checkbox" name="weekdays" value="FRIDAY">Sex</label><label><input type="checkbox" name="weekdays" value="SATURDAY">Sáb</label><label><input type="checkbox" name="weekdays" value="SUNDAY">Dom</label>
+                        </fieldset>
+                    </div>
+                    <div class="planning-actions"><button class="primary-button" type="submit" data-save-availability><i class="bi bi-check2"></i>Salvar horário</button><button class="secondary-button" type="button" data-cancel-availability-edit hidden>Cancelar edição</button></div>
+                    <p class="teacher-feedback" data-availability-feedback role="status" aria-live="polite"></p>
+                </form>
+                <section class="teacher-list-panel"><div class="planning-list-heading"><div><p class="eyebrow">PERÍODO SELECIONADO</p><h3>Seus horários registrados</h3></div><button class="icon-button" type="button" data-refresh-availability title="Atualizar" aria-label="Atualizar disponibilidade"><i class="bi bi-arrow-clockwise"></i></button></div><div class="teacher-record-list" data-availability-list></div></section>
+            </div>
+        </section>
+        <section class="teacher-panel" role="tabpanel" data-teacher-panel="schedule" hidden>
+            <div class="planning-list-heading"><div><p class="eyebrow">VERSÕES PROPOSTAS E PUBLICADAS</p><h3>Sua agenda de aulas</h3></div><button class="secondary-button" type="button" data-refresh-schedules><i class="bi bi-arrow-clockwise"></i>Atualizar</button></div>
+            <div class="teacher-record-list" data-teacher-schedules></div>
+            <button class="secondary-button" type="button" data-print-schedule><i class="bi bi-printer"></i>Imprimir agenda</button>
+        </section>
+        <section class="teacher-panel" role="tabpanel" data-teacher-panel="requests" hidden>
+            <div class="planning-list-heading"><div><p class="eyebrow">CORREÇÃO DE GRADE</p><h3>Solicitações de ajuste</h3></div></div>
+            <form class="teacher-request-form" data-adjustment-form>
+                <div class="planning-fields-two">
+                    <label class="field-group"><span>Grade</span><select name="scheduleId" required data-adjustment-schedules></select></label>
+                    <label class="field-group"><span>Atividade</span><select name="activityId" data-adjustment-activities></select></label>
+                </div>
+                <label class="field-group"><span>Descreva o ajuste ou a divergência</span><textarea name="description" rows="3" required maxlength="500"></textarea></label>
+                <button class="primary-button" type="submit"><i class="bi bi-send"></i>Enviar solicitação</button>
+            </form>
+            <div class="teacher-record-list" data-teacher-requests></div>
+        </section>
+        <section class="teacher-panel" role="tabpanel" data-teacher-panel="notifications" hidden>
+            <div class="planning-list-heading"><div><p class="eyebrow">MUDANÇAS NA GRADE</p><h3>Notificações</h3></div></div>
+            <div class="teacher-record-list" data-teacher-notifications></div>
+        </section>
+        <p class="teacher-link-warning" data-teacher-link-warning hidden>Vincule este login a um cadastro docente por `APP_PROFESSOR_TEACHER_ID` para carregar seus horários.</p>
     </section>
 
     <section class="persona-quote"><span class="quote-mark">“</span><p>Quero informar meus horários possíveis uma vez e confiar que a grade publicada é a que vale.</p><span class="quote-credit">PERSONA 02 <i class="bi bi-dot"></i> PROFESSOR</span></section>
 </div>
+<script th:src="@{/js/teacher-journey.js}" defer></script>
 </body>
 </html>

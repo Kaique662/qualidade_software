@@ -290,6 +290,12 @@ public class ResourcePlanningService implements ReservationResourceValidator {
         return blockRepository.findById(id).orElseThrow(() -> notFound("Bloqueio não encontrado"));
     }
 
+    public List<ResourceBlock> getResourceBlocks(String resourceId) {
+        return blockRepository.findAll().stream()
+                .filter(block -> resourceId == null || resourceId.equals(block.getResourceId()))
+                .toList();
+    }
+
     public ResourceBlock updateBlock(String id, ResourceBlock update) {
         ResourceBlock block = getBlock(id);
         if (block.getStatus() == ResourceBlock.BlockStatus.CANCELLED) {

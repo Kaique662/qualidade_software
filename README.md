@@ -21,10 +21,7 @@ Este é um projeto educacional em Java usando Spring Boot e Maven para ensinar c
 
 ## Conexão ao Banco de Dados
 
-Este projeto utiliza um banco de dados MongoDB hospedado remotamente para fins educacionais:
-```
-mongodb://mongo:XdnCdkmKwzJiKHiryTDzdgRGOxzNQYtA@crossover.proxy.rlwy.net:24258
-```
+Configure `SPRING_DATA_MONGODB_URI` (ou `MONGODB_URI`) no ambiente. Sem URI configurada, a aplicação tenta `mongodb://localhost:27017/qualidade_software`. Não versionamos credenciais nem usamos um serviço remoto implícito.
 
 ## Começando
 
@@ -85,16 +82,17 @@ java -jar target/educational-quality-project-0.0.1-SNAPSHOT.jar
 
 ### Acessando a Aplicação
 
-Antes de iniciar, configure uma senha local para cada perfil. Os nomes de usuário padrão são `admin`, `professor` e `gestora`:
+Os nomes de usuário padrão são `admin`, `professor` e `gestora`. Os exemplos de senha de demonstração a seguir são apenas para ambiente local:
 
 ```bash
 export APP_ADMIN_PASSWORD='admin2'
 export APP_PROFESSOR_PASSWORD='prof2'
 export APP_MANAGER_PASSWORD='mama2'
+export APP_PROFESSOR_TEACHER_ID='id-do-professor-no-mongodb'
 ./mvnw spring-boot:run
 ```
 
-Opcionalmente, os nomes de usuário podem ser definidos com `APP_ADMIN_USERNAME`, `APP_PROFESSOR_USERNAME` e `APP_MANAGER_USERNAME`. As senhas não têm valor padrão e não devem ser salvas no repositório. Este login local de demonstração não substitui um provedor de identidade para produção.
+O vínculo `APP_PROFESSOR_TEACHER_ID` é necessário para habilitar a disponibilidade, agenda e solicitações do professor; use o ID do cadastro existente em MongoDB. Opcionalmente, os nomes de usuário podem ser definidos com `APP_ADMIN_USERNAME`, `APP_PROFESSOR_USERNAME` e `APP_MANAGER_USERNAME`. Este login local de demonstração não substitui um provedor de identidade para produção.
 
 Depois de iniciar a aplicação, acesse http://localhost:8080/login. O perfil é escolhido pelas credenciais usadas:
 - `admin`: painel com cadastro de estudantes e professores
@@ -179,6 +177,8 @@ Os estados do fluxo são `RASCUNHO`, `PENDENTE_APROVACAO`, `APROVADA`, `REJEITAD
 A alocação verifica capacidade e características da sala, professores conflitantes ou indisponíveis, bloqueios confirmados, buffers e quantidade concorrente de materiais. As comparações de intervalo usam início inclusivo e fim exclusivo. A verificação e a gravação não são uma transação distribuída: concorrência simultânea entre requisições ainda requer uma garantia de persistência apropriada. Os horários usam `LocalDateTime`; o fuso institucional ainda precisa ser definido para atender integralmente aos RNFs temporais.
 
 ## Estrutura do Projeto
+
+O mapa de jornadas e rotas com interface, incluindo endpoints ainda sem tela, está em [docs/interface-jornadas.md](docs/interface-jornadas.md).
 
 - `entity/` - Entidades MongoDB para estudantes, professores e planejamento acadêmico
 - `repository/` - Interfaces da camada de acesso a dados

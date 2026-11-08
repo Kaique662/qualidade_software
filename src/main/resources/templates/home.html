@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
 <head><title>Núcleo | Visão geral</title></head>
 <body>
@@ -16,7 +15,7 @@
     <section class="dashboard-section" aria-labelledby="workspace-title">
         <div class="section-heading">
             <div><p class="eyebrow">SEU ESPAÇO</p><h2 id="workspace-title">Cadastros</h2></div>
-            <span class="section-count"><span class="status-pip"></span> 2 áreas disponíveis</span>
+            <span class="section-count"><span class="status-pip"></span> 3 áreas disponíveis</span>
         </div>
         <div class="workspace-grid">
             <a class="workspace-card student-card" th:href="@{/students}">
@@ -28,6 +27,11 @@
                 <div class="workspace-card-top"><span class="module-icon"><i class="bi bi-person-workspace"></i></span><i class="bi bi-arrow-up-right card-arrow"></i></div>
                 <div class="workspace-card-copy"><p class="eyebrow">CORPO DOCENTE</p><h3>Professores</h3><p>Organize contatos e departamentos em um só lugar.</p></div>
                 <span class="card-action">Abrir cadastro <i class="bi bi-arrow-right"></i></span>
+            </a>
+            <a class="workspace-card planning-card" th:href="@{/admin/planning}">
+                <div class="workspace-card-top"><span class="module-icon"><i class="bi bi-calendar2-range"></i></span><i class="bi bi-arrow-up-right card-arrow"></i></div>
+                <div class="workspace-card-copy"><p class="eyebrow">COORDENAÇÃO</p><h3>Planejamento</h3><p>Monte rascunhos, revise versões e publique grades do período.</p></div>
+                <span class="card-action">Abrir planejamento <i class="bi bi-arrow-right"></i></span>
             </a>
         </div>
     </section>

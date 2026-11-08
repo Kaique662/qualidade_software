@@ -28,14 +28,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
-<<<<<<< HEAD
-=======
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
             <version>9.22.3</version>
->>>>>>> 6b3f3667c72f3e80db567a4cbee69bee3441b92f
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

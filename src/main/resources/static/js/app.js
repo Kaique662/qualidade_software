@@ -50,6 +50,8 @@ function initializeResourceDashboard(root) {
     const form = root.querySelector("[data-resource-form]");
     const formFeedback = root.querySelector("[data-form-feedback]");
     const typeInput = root.querySelector("[data-resource-type]");
+    const saveButton = root.querySelector("[data-save-resource]");
+    const cancelEditButton = root.querySelector("[data-cancel-resource-edit]");
     let resources = [];
 
     const labels = {
@@ -107,11 +109,49 @@ function initializeResourceDashboard(root) {
             });
             stateSelect.addEventListener("change", () => changeResourceState(resource, stateSelect.value));
             stateCell.append(stateSelect);
-            row.append(item, type, location, quantity, stateCell);
+            const actions = document.createElement("td");
+            const edit = document.createElement("button");
+            edit.type = "button";
+            edit.className = "icon-button";
+            edit.title = "Editar recurso";
+            edit.setAttribute("aria-label", `Editar ${resource.name}`);
+            edit.innerHTML = '<i class="bi bi-pencil-square"></i>';
+            edit.addEventListener("click", () => editResource(resource));
+            actions.append(edit);
+            row.append(item, type, location, quantity, stateCell, actions);
             rows.append(row);
         });
         table.hidden = visibleResources.length === 0;
         root.querySelector("[data-resource-empty]").hidden = visibleResources.length > 0;
+    }
+
+    function editResource(resource) {
+        form.dataset.resourceId = resource.id;
+        form.elements.code.value = resource.code;
+        form.elements.name.value = resource.name;
+        form.elements.type.value = resource.type;
+        typeInput.dispatchEvent(new Event("change"));
+        form.elements.location.value = resource.location;
+        form.elements.capacity.value = resource.capacity ?? "";
+        form.elements.totalQuantity.value = resource.totalQuantity ?? "";
+        form.elements.unit.value = resource.unit ?? "";
+        form.elements.features.value = (resource.features ?? []).join(", ");
+        form.elements.preparationBufferMinutes.value = resource.preparationBufferMinutes ?? 0;
+        form.elements.cleanupBufferMinutes.value = resource.cleanupBufferMinutes ?? 0;
+        form.elements.restricted.checked = Boolean(resource.restricted);
+        saveButton.innerHTML = '<i class="bi bi-check2"></i> Atualizar recurso';
+        cancelEditButton.hidden = false;
+        root.querySelector("[data-resource-create]").open = true;
+        form.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function resetResourceForm() {
+        delete form.dataset.resourceId;
+        form.reset();
+        typeInput.dispatchEvent(new Event("change"));
+        saveButton.innerHTML = '<i class="bi bi-check2"></i> Salvar recurso';
+        cancelEditButton.hidden = true;
+        formFeedback.textContent = "";
     }
 
     async function loadResources() {
@@ -162,10 +202,11 @@ function initializeResourceDashboard(root) {
             name: data.get("name"),
             type,
             location: data.get("location"),
-            features: [],
-            state: "AVAILABLE",
-            preparationBufferMinutes: 0,
-            cleanupBufferMinutes: 0
+            features: String(data.get("features") || "").split(",").map((item) => item.trim()).filter(Boolean),
+            state: resources.find((item) => item.id === form.dataset.resourceId)?.state ?? "AVAILABLE",
+            preparationBufferMinutes: Number(data.get("preparationBufferMinutes") || 0),
+            cleanupBufferMinutes: Number(data.get("cleanupBufferMinutes") || 0),
+            restricted: data.get("restricted") === "on"
         };
         if (type === "ROOM") {
             resource.capacity = Number(data.get("capacity"));
@@ -176,15 +217,15 @@ function initializeResourceDashboard(root) {
 
         formFeedback.textContent = "Salvando recurso...";
         try {
-            const response = await fetch("/api/resources", {
-                method: "POST",
+            const resourceId = form.dataset.resourceId;
+            const response = await fetch(resourceId ? `/api/resources/${encodeURIComponent(resourceId)}` : "/api/resources", {
+                method: resourceId ? "PUT" : "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(resource)
             });
             if (!response.ok) throw new Error();
-            form.reset();
-            typeInput.dispatchEvent(new Event("change"));
-            formFeedback.textContent = "Recurso cadastrado.";
+            resetResourceForm();
+            formFeedback.textContent = resourceId ? "Recurso atualizado." : "Recurso cadastrado.";
             await loadResources();
         } catch {
             formFeedback.textContent = "Não foi possível cadastrar. Confira os dados e a conexão com o banco.";
@@ -193,5 +234,6 @@ function initializeResourceDashboard(root) {
 
     search.addEventListener("input", renderResources);
     filter.addEventListener("change", renderResources);
+    cancelEditButton.addEventListener("click", resetResourceForm);
     loadResources();
 }

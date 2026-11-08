@@ -19,6 +19,17 @@ class PortalLoginServiceTest {
     }
 
     @Test
+    void includesConfiguredTeacherRecordIdForProfessorAccount() {
+        PortalLoginService service = new PortalLoginService(
+                "admin", "admin-secret", "professor", "prof-secret", "teacher-123",
+                "gestora", "manager-secret");
+
+        PortalUser professor = service.authenticate("professor", "prof-secret").orElseThrow();
+
+        assertEquals("teacher-123", professor.teacherId());
+    }
+
+    @Test
     void doesNotEnableAccountsWithoutPasswords() {
         PortalLoginService service = new PortalLoginService(
                 "admin", "", "professor", "", "gestora", "");

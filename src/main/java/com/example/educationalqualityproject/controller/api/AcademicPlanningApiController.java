@@ -5,7 +5,10 @@ import com.example.educationalqualityproject.entity.AcademicSchedule;
 import com.example.educationalqualityproject.entity.ClassGroup;
 import com.example.educationalqualityproject.entity.Course;
 import com.example.educationalqualityproject.entity.Subject;
+import com.example.educationalqualityproject.entity.TeacherScheduleView;
+import com.example.educationalqualityproject.auth.PortalUser;
 import com.example.educationalqualityproject.service.AcademicPlanningService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -145,6 +148,11 @@ public class AcademicPlanningApiController {
         return academicPlanningService.getAcademicSchedule(id);
     }
 
+    @GetMapping("/teachers/{teacherId}/schedules")
+    public List<TeacherScheduleView> getTeacherSchedules(@PathVariable String teacherId) {
+        return academicPlanningService.getTeacherSchedules(teacherId);
+    }
+
     @PostMapping("/schedules")
     public ResponseEntity<AcademicSchedule> createAcademicSchedule(@RequestBody AcademicSchedule schedule,
                                                                    @RequestParam(defaultValue = "sistema") String actor) {
@@ -192,15 +200,31 @@ public class AcademicPlanningApiController {
     }
 
     @GetMapping("/schedules/{id}/adjustment-requests")
-    public List<AcademicSchedule.AdjustmentRequest> getScheduleAdjustmentRequests(@PathVariable String id) {
-        return academicPlanningService.getScheduleAdjustmentRequests(id);
+    public List<AcademicSchedule.AdjustmentRequest> getScheduleAdjustmentRequests(
+            @PathVariable String id, HttpServletRequest request) {
+        List<AcademicSchedule.AdjustmentRequest> requests =
+                academicPlanningService.getScheduleAdjustmentRequests(id);
+        PortalUser user = currentUser(request);
+        if (user.role() == PortalUser.Role.PROFESSOR) {
+            return requests.stream().filter(item -> user.teacherId().equals(item.getRequester())).toList();
+        }
+        return requests;
     }
 
     @PostMapping("/schedules/{id}/adjustment-requests")
     public ResponseEntity<AcademicSchedule.AdjustmentRequest> requestScheduleAdjustment(
-            @PathVariable String id, @RequestBody AcademicSchedule.AdjustmentRequest request) {
+            @PathVariable String id, @RequestBody AcademicSchedule.AdjustmentRequest request,
+            HttpServletRequest servletRequest) {
+        PortalUser user = currentUser(servletRequest);
+        String requester = user.role() == PortalUser.Role.PROFESSOR
+            ? user.teacherId() : request.getRequester();
+        if (user.role() == PortalUser.Role.PROFESSOR
+            && !teacherOwnsRequestedActivity(id, request.getActivityId(), user.teacherId())) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN,
+                "A solicitação deve pertencer a uma atividade do próprio professor");
+        }
         AcademicSchedule.AdjustmentRequest saved = academicPlanningService.requestScheduleAdjustment(
-                id, request.getRequester(), request.getActivityId(), request.getDescription());
+            id, requester, request.getActivityId(), request.getDescription());
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -213,13 +237,22 @@ public class AcademicPlanningApiController {
 
     @GetMapping("/schedules/{id}/notifications")
     public List<AcademicSchedule.ScheduleNotification> getScheduleNotifications(
-            @PathVariable String id, @RequestParam String recipient) {
+            @PathVariable String id, @RequestParam String recipient, HttpServletRequest request) {
+        PortalUser user = currentUser(request);
+        if (user.role() == PortalUser.Role.PROFESSOR && !user.teacherId().equals(recipient)) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
         return academicPlanningService.getScheduleNotifications(id, recipient);
     }
 
     @PatchMapping("/schedules/{id}/notifications/{notificationId}/read")
-    public AcademicSchedule markNotificationRead(@PathVariable String id, @PathVariable String notificationId,
-                                                 @RequestParam String recipient) {
+        public AcademicSchedule.ScheduleNotification markNotificationRead(
+            @PathVariable String id, @PathVariable String notificationId,
+            @RequestParam String recipient, HttpServletRequest request) {
+        PortalUser user = currentUser(request);
+        if (user.role() == PortalUser.Role.PROFESSOR && !user.teacherId().equals(recipient)) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
         return academicPlanningService.markNotificationRead(id, notificationId, recipient);
     }
 
@@ -248,5 +281,20 @@ public class AcademicPlanningApiController {
     @GetMapping("/schedules/{id}/published")
     public AcademicSchedule.ScheduleVersion getPublishedScheduleVersion(@PathVariable String id) {
         return academicPlanningService.getPublishedScheduleVersion(id);
+    }
+
+    private PortalUser currentUser(HttpServletRequest request) {
+        return (PortalUser) request.getAttribute("portalUser");
+    }
+
+    private boolean teacherOwnsRequestedActivity(String scheduleId, String activityId, String teacherId) {
+        AcademicSchedule schedule = academicPlanningService.getAcademicSchedule(scheduleId);
+        if (schedule.getActivities() == null) {
+            return false;
+        }
+        return schedule.getActivities().stream()
+                .filter(activity -> activity.getTeacherIds() != null
+                        && activity.getTeacherIds().contains(teacherId))
+                .anyMatch(activity -> activityId == null || activityId.equals(activity.getId()));
     }
 }

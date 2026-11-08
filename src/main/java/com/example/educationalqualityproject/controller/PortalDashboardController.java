@@ -18,8 +18,17 @@ public class PortalDashboardController {
         return "portal/gestora";
     }
 
+    @GetMapping("/admin/planning")
+    public String academicPlanningDashboard() {
+        return "portal/academic-planning";
+    }
+
     @ModelAttribute("activePage")
     public String activePage(HttpServletRequest request) {
-        return request.getRequestURI().endsWith("/gestora") ? "gestora" : "professor";
+        String path = request.getRequestURI();
+        if (path.endsWith("/gestora")) {
+            return "gestora";
+        }
+        return path.endsWith("/admin/planning") ? "planning" : "professor";
     }
 }

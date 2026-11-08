@@ -27,6 +27,8 @@ class PortalDashboardControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Marcos Vinícius Lima")))
                 .andExpect(content().string(containsString("Sua agenda de aulas")))
+                .andExpect(content().string(containsString("Seus horários registrados")))
+                .andExpect(content().string(containsString("Solicitações de ajuste")))
                 .andExpect(content().string(containsString("PERSONA 02")));
     }
 
@@ -39,7 +41,19 @@ class PortalDashboardControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Recursos cadastrados")))
                 .andExpect(content().string(containsString("Cadastrar recurso")))
+                .andExpect(content().string(containsString("Solicitar bloqueio")))
+                .andExpect(content().string(containsString("Agenda do recurso")))
                 .andExpect(content().string(containsString("PERSONA 03")));
+    }
+
+    @Test
+    void adminCanOpenAcademicPlanningWorkspace() throws Exception {
+        MockHttpSession session = session("admin", "Administrador", PortalUser.Role.ADMIN);
+
+        mockMvc.perform(get("/admin/planning").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Planejamento acadêmico")))
+                .andExpect(content().string(containsString("Salvar como rascunho")));
     }
 
     @Test
@@ -57,6 +71,16 @@ class PortalDashboardControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/professor"));
     }
+
+            @Test
+            void resourceManagerCannotOpenAdminPlanningWorkspace() throws Exception {
+            MockHttpSession session = session(
+                "gestora", "Renata Costa Nascimento", PortalUser.Role.RESOURCE_MANAGER);
+
+            mockMvc.perform(get("/admin/planning").session(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/gestora"));
+            }
 
     private MockHttpSession session(String username, String displayName, PortalUser.Role role) {
         MockHttpSession session = new MockHttpSession();

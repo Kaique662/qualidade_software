@@ -73,6 +73,22 @@ class ResourcePlanningServiceTest {
         assertEquals(3, available);
     }
 
+        @Test
+        void shouldFilterResourceBlocksByResourceId() {
+                ResourceBlock matching = new ResourceBlock();
+                matching.setId("block-1");
+                matching.setResourceId("room-1");
+                ResourceBlock other = new ResourceBlock();
+                other.setId("block-2");
+                other.setResourceId("projector-1");
+                when(blockRepository.findAll()).thenReturn(List.of(matching, other));
+
+                List<ResourceBlock> result = service.getResourceBlocks("room-1");
+
+                assertEquals(1, result.size());
+                assertEquals("block-1", result.get(0).getId());
+        }
+
     @Test
     void shouldAllocateRoomAndMaterialsToScheduleActivity() {
         AcademicSchedule schedule = schedule("schedule-1", activity("activity-1", "teacher-1",

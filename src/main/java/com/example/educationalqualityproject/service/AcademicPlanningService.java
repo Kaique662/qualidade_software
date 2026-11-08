@@ -4,7 +4,9 @@ import com.example.educationalqualityproject.entity.AcademicPeriod;
 import com.example.educationalqualityproject.entity.AcademicSchedule;
 import com.example.educationalqualityproject.entity.ClassGroup;
 import com.example.educationalqualityproject.entity.Course;
+import com.example.educationalqualityproject.entity.ManagedResource;
 import com.example.educationalqualityproject.entity.Subject;
+import com.example.educationalqualityproject.entity.TeacherScheduleView;
 import com.example.educationalqualityproject.repository.AcademicPeriodRepository;
 import com.example.educationalqualityproject.repository.AcademicScheduleRepository;
 import com.example.educationalqualityproject.repository.ClassGroupRepository;
@@ -186,6 +188,73 @@ public class AcademicPlanningService {
 
     public AcademicSchedule getAcademicSchedule(String id) {
         return findOrNotFound(academicScheduleRepository.findById(id), "Grade não encontrada");
+    }
+
+    public List<TeacherScheduleView> getTeacherSchedules(String teacherId) {
+        requireText(teacherId, "Identificador do professor é obrigatório");
+        List<TeacherScheduleView> schedules = new ArrayList<>();
+        for (AcademicSchedule schedule : academicScheduleRepository.findAll()) {
+            AcademicSchedule.ScheduleVersion publishedVersion = null;
+            if (schedule.getPublishedVersionNumber() != null && schedule.getVersions() != null) {
+                publishedVersion = schedule.getVersions().stream()
+                        .filter(version -> version.getNumber() == schedule.getPublishedVersionNumber())
+                        .findFirst().orElse(null);
+            }
+            List<AcademicSchedule.ScheduledActivity> activities = publishedVersion != null
+                    ? publishedVersion.getActivities() : schedule.getActivities();
+            if (activities == null || !List.of("PUBLICADA", "PENDENTE_APROVACAO", "APROVADA")
+                    .contains(schedule.getStatus()) && publishedVersion == null) {
+                continue;
+            }
+            List<AcademicSchedule.ScheduledActivity> ownActivities = activities.stream()
+                    .filter(activity -> activity.getTeacherIds() != null
+                            && activity.getTeacherIds().contains(teacherId))
+                    .toList();
+            if (ownActivities.isEmpty()) {
+                continue;
+            }
+            List<TeacherScheduleView.Activity> activityViews = ownActivities.stream()
+                    .map(this::toTeacherActivityView)
+                    .toList();
+            String periodName = academicPeriodRepository.findById(schedule.getAcademicPeriodId())
+                    .map(AcademicPeriod::getName).orElse(schedule.getAcademicPeriodId());
+            schedules.add(new TeacherScheduleView(schedule.getId(), schedule.getName(), periodName,
+                    publishedVersion == null ? schedule.getStatus() : "PUBLICADA",
+                    publishedVersion == null ? schedule.getVersionNumber() : publishedVersion.getNumber(),
+                    schedule.getPublishedAt(), activityViews));
+        }
+        return schedules;
+    }
+
+    private TeacherScheduleView.Activity toTeacherActivityView(AcademicSchedule.ScheduledActivity activity) {
+        String courseName = courseRepository.findById(activity.getCourseId())
+                .map(Course::getName).orElse(activity.getCourseId());
+        String className = classGroupRepository.findById(activity.getClassId())
+                .map(ClassGroup::getName).orElse(activity.getClassId());
+        String subjectName = subjectRepository.findById(activity.getSubjectId())
+                .map(Subject::getName).orElse(activity.getSubjectId());
+        String roomName = null;
+        String location = null;
+        if (activity.getRoomResourceId() != null) {
+            try {
+                ManagedResource room = resourcePlanningService.getResource(activity.getRoomResourceId());
+                roomName = room.getName();
+                location = room.getLocation();
+            } catch (ResponseStatusException ignored) {
+                roomName = activity.getRoomResourceId();
+            }
+        }
+        List<String> materials = activity.getMaterials() == null ? List.of()
+                : activity.getMaterials().stream().map(material -> {
+                    try {
+                        ManagedResource resource = resourcePlanningService.getResource(material.getResourceId());
+                        return resource.getName() + " × " + material.getQuantity();
+                    } catch (ResponseStatusException ignored) {
+                        return material.getResourceId() + " × " + material.getQuantity();
+                    }
+                }).toList();
+        return new TeacherScheduleView.Activity(activity.getId(), courseName, className, subjectName,
+                activity.getStartsAt(), activity.getEndsAt(), roomName, location, materials);
     }
 
     public AcademicSchedule saveAcademicSchedule(String id, AcademicSchedule schedule) {
@@ -400,7 +469,8 @@ public class AcademicPlanningService {
                 .toList();
     }
 
-    public AcademicSchedule markNotificationRead(String id, String notificationId, String recipient) {
+    public AcademicSchedule.ScheduleNotification markNotificationRead(String id, String notificationId,
+                                                                      String recipient) {
         AcademicSchedule schedule = getAcademicSchedule(id);
         requireText(recipient, "Identificador do destinatário é obrigatório");
         initializeWorkflow(schedule);
@@ -409,7 +479,8 @@ public class AcademicPlanningService {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notificação não encontrada"));
         notification.setRead(true);
-        return academicScheduleRepository.save(schedule);
+        academicScheduleRepository.save(schedule);
+        return notification;
     }
 
     public List<AcademicSchedule.ScheduleAuditEvent> getScheduleAudit(String id) {

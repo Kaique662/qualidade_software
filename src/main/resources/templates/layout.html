@@ -29,6 +29,9 @@
                 <a class="nav-item" th:if="${portalUser.role.name() == 'ADMIN'}" th:href="@{/teachers}" th:classappend="${activePage == 'teachers' ? ' is-active' : ''}">
                     <i class="bi bi-person-workspace"></i><span>Professores</span>
                 </a>
+                <a class="nav-item" th:if="${portalUser.role.name() == 'ADMIN'}" th:href="@{/admin/planning}" th:classappend="${activePage == 'planning' ? ' is-active' : ''}">
+                    <i class="bi bi-calendar2-range"></i><span>Planejamento</span>
+                </a>
                 <a class="nav-item" th:if="${portalUser.role.name() == 'PROFESSOR'}" th:href="@{/professor}" th:classappend="${activePage == 'professor' ? ' is-active' : ''}">
                     <i class="bi bi-calendar-week"></i><span>Minha jornada</span>
                 </a>
@@ -46,7 +49,7 @@
                 <button class="icon-button menu-toggle" type="button" aria-label="Abrir menu" aria-controls="sideRail" aria-expanded="false">
                     <i class="bi bi-list"></i>
                 </button>
-                <div class="breadcrumb-line"><span>Área de trabalho</span><i class="bi bi-chevron-right"></i><strong th:text="${activePage == 'home' ? 'Visão geral' : (activePage == 'students' ? 'Estudantes' : (activePage == 'teachers' ? 'Professores' : (activePage == 'professor' ? 'Minha jornada' : 'Espaços e materiais')))}">Visão geral</strong></div>
+                <div class="breadcrumb-line"><span>Área de trabalho</span><i class="bi bi-chevron-right"></i><strong th:text="${activePage == 'home' ? 'Visão geral' : (activePage == 'planning' ? 'Planejamento' : (activePage == 'students' ? 'Estudantes' : (activePage == 'teachers' ? 'Professores' : (activePage == 'professor' ? 'Minha jornada' : 'Espaços e materiais'))))}">Visão geral</strong></div>
                 <form class="topbar-actions" th:action="@{/logout}" method="post"><span class="topbar-note"><span class="status-pip"></span> Sessão ativa</span><button class="icon-button" type="submit" aria-label="Sair" title="Sair"><i class="bi bi-box-arrow-right"></i></button></form>
             </header>
             <div class="page-content" th:insert="${content}"></div>

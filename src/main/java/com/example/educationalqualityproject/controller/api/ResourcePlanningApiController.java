@@ -124,6 +124,11 @@ public class ResourcePlanningApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(resourcePlanningService.createBlock(block));
     }
 
+    @GetMapping("/resource-blocks")
+    public List<ResourceBlock> getResourceBlocks(@RequestParam(required = false) String resourceId) {
+        return resourcePlanningService.getResourceBlocks(resourceId);
+    }
+
     @GetMapping("/resource-blocks/{id}")
     public ResourceBlock getBlock(@PathVariable String id) {
         return resourcePlanningService.getBlock(id);

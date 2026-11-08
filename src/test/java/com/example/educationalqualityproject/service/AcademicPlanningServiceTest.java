@@ -254,6 +254,42 @@ class AcademicPlanningServiceTest {
             .anyMatch(event -> "AJUSTE_ACEITA".equals(event.getAction())));
         }
 
+    @Test
+    void shouldReturnOnlyPublishedActivitiesForTheRequestedTeacher() {
+        AcademicSchedule schedule = workflowSchedule();
+        schedule.setStatus("PUBLICADA");
+        schedule.setPublishedVersionNumber(1);
+        AcademicSchedule.ScheduledActivity ownActivity = activity("own-activity", "teacher-1");
+        ownActivity.setCourseId("course-1");
+        ownActivity.setClassId("class-1");
+        ownActivity.setSubjectId("subject-1");
+        AcademicSchedule.ScheduledActivity otherActivity = activity("other-activity", "teacher-2");
+        otherActivity.setCourseId("course-1");
+        otherActivity.setClassId("class-1");
+        otherActivity.setSubjectId("subject-1");
+        schedule.getVersions().get(0).setActivities(List.of(ownActivity, otherActivity));
+        AcademicPeriod period = period("2026.1", LocalDate.parse("2026-02-01"), LocalDate.parse("2026-06-30"));
+        period.setId("period-1");
+        Course course = new Course();
+        course.setName("ADS");
+        ClassGroup classGroup = new ClassGroup();
+        classGroup.setName("ADS noite");
+        Subject subject = new Subject();
+        subject.setName("Qualidade de Software");
+        when(academicScheduleRepository.findAll()).thenReturn(List.of(schedule));
+        when(academicPeriodRepository.findById("period-1")).thenReturn(Optional.of(period));
+        when(courseRepository.findById("course-1")).thenReturn(Optional.of(course));
+        when(classGroupRepository.findById("class-1")).thenReturn(Optional.of(classGroup));
+        when(subjectRepository.findById("subject-1")).thenReturn(Optional.of(subject));
+
+        var result = service.getTeacherSchedules("teacher-1");
+
+        assertEquals(1, result.size());
+        assertEquals("PUBLICADA", result.get(0).status());
+        assertEquals(1, result.get(0).activities().size());
+        assertEquals("Qualidade de Software", result.get(0).activities().get(0).subject());
+    }
+
     private AcademicSchedule workflowSchedule() {
         AcademicSchedule schedule = new AcademicSchedule();
         schedule.setId("schedule-1");

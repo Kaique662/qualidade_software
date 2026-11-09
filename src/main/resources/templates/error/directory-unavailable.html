@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dados temporariamente indisponíveis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link th:href="@{/css/app.css}" rel="stylesheet">
+</head>
+<body class="database-error-page">
+<main class="database-error-content">
+    <span class="empty-icon"><i class="bi bi-database-exclamation" aria-hidden="true"></i></span>
+    <p class="eyebrow">CONEXÃO COM DADOS</p>
+    <h1>Lista de <span th:text="${directoryName}">cadastros</span> indisponível</h1>
+    <p>Não foi possível acessar o MongoDB agora. Confira a configuração <code th:text="${databaseConfiguration}">SPRING_DATA_MONGODB_URI</code> e a disponibilidade do banco.</p>
+    <a class="primary-button" th:href="${retryPath}"><i class="bi bi-arrow-clockwise"></i>Tentar novamente</a>
+</main>
+</body>
+</html>

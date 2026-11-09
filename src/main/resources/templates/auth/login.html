@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#173b3a">
+    <title>Núcleo | Entrar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link th:href="@{/css/app.css}" rel="stylesheet">
+</head>
+<body class="login-page">
+    <main class="login-layout">
+        <section class="login-intro">
+            <a class="login-brand" th:href="@{/login}" aria-label="Núcleo">
+                <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
+                <span><strong>Núcleo</strong><small>gestão acadêmica</small></span>
+            </a>
+            <div class="login-intro-copy">
+                <p class="eyebrow eyebrow-light"><span class="eyebrow-dot"></span> PORTAL ACADÊMICO</p>
+                <h1>Um lugar para cada jornada.</h1>
+                <p>Entre para acessar sua área de trabalho.</p>
+            </div>
+            <div class="login-orbit" aria-hidden="true"><span>01</span><span>02</span><span>03</span></div>
+            <span class="login-edition">NÚCLEO <span>·</span> 2026</span>
+        </section>
+        <section class="login-panel" aria-labelledby="login-title">
+            <div class="login-form-wrap">
+                <p class="eyebrow">ACESSO</p>
+                <h2 id="login-title">Boas-vindas</h2>
+                <p class="login-subtitle">Use suas credenciais para continuar.</p>
+                <div class="login-alert" role="alert" th:if="${loginError}" th:text="${loginError}"></div>
+                <div class="login-alert login-alert-info" role="status" th:if="${param.required}">Entre para acessar essa área.</div>
+                <form class="login-form" th:action="@{/login}" method="post">
+                    <label class="field-group" for="username">
+                        <span>Usuário</span>
+                        <span class="login-input"><i class="bi bi-person" aria-hidden="true"></i><input id="username" name="username" type="text" autocomplete="username" placeholder="Seu usuário" th:value="${username}" required autofocus></span>
+                    </label>
+                    <label class="field-group" for="password">
+                        <span>Senha</span>
+                        <span class="login-input"><i class="bi bi-lock" aria-hidden="true"></i><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required></span>
+                    </label>
+                    <button class="primary-button login-submit" type="submit">Entrar <i class="bi bi-arrow-right"></i></button>
+                </form>
+                <p class="login-footnote"><i class="bi bi-shield-check" aria-hidden="true"></i> Acesso individual por perfil.</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

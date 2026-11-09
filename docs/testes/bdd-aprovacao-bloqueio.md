@@ -9,7 +9,7 @@ Este documento transforma em cenários as quatro regras descritas na solicitaç�
 3. Recurso em manutenção não pode ser reservado.
 4. A reserva segue `SOLICITADA → APROVADA → EM_USO → CONCLUÍDA`, com alternativas rejeitada, cancelada e não compareceu.
 
-**Limite de fonte:** `docs/prd.md` e `docs/rtm.md` não foram encontrados. Foram procurados com `find` em `docs/` e no repositório; as buscas textuais por aprovação, Solicitante, Responsável, manutenção, estados e reserva cobriram `PRD/`, `docs/` e `src/`. Existem documentos de requisitos em `PRD/`, mas eles descrevem outro escopo (alocação acadêmica) e não formalizam estas quatro regras nem seus contratos. O código Java encontrado implementa estudante/professor; não há entidades ou serviços de reserva/manutenção. A arquitetura menciona que a política de manutenção e o fluxo de ocorrência precisam de detalhamento (`docs/arquitetura.md`, seção 24).
+**Limite de fonte:** existem documentos de requisitos em `PRD/`, mas eles não formalizam estas quatro regras nem seus contratos. O domínio de reservas foi conectado à API e ao PostgreSQL opcional; a consulta compartilhada também valida recursos, bloqueios e agenda Mongo. A política institucional de manutenção, os papéis autenticados e os estados alternativos continuam sem definição formal. A arquitetura e a persona de recursos mantêm essas lacunas em aberto.
 
 Assim, os cenários abaixo usam as quatro regras conforme enunciadas pelo solicitante, não como regras confirmadas pelo PRD/RTM do repositório. Resultados de borda não definidos estão marcados **Em aberto** e não devem virar expectativa de teste até decisão do responsável pelo produto.
 
@@ -109,7 +109,7 @@ As duas transições pulam um estado da sequência expressamente listada. A cons
 
 ## Destino dos cenários de teste
 
-Os tipos abaixo são uma proposta de alocação de teste, não uma afirmação de que existam classes/endpoints no código atual. Os contratos ausentes precisam ser definidos antes de fixar status HTTP, nomes de rotas ou estados de origem das alternativas.
+Os tipos abaixo registram a estratégia de teste. Os endpoints atuais estão documentados no `README.md`; transições alternativas continuam bloqueadas até definição da matriz de estados e permissões.
 
 ### Testes de unidade
 
@@ -129,4 +129,4 @@ Os tipos abaixo são uma proposta de alocação de teste, não uma afirmação d
 - **BDD-EST-02:** chamadas para transições proibidas não alteram o estado persistido.
 - **BDD-EST-03:** casos de rejeição/cancelamento/não comparecimento somente após a matriz de transição e permissões ser aprovada.
 
-Nenhum endpoint, status HTTP, papel adicional, janela temporal ou transição alternativa foi presumido neste documento.
+`actorId` e `role` são dados de entrada, não identidades autenticadas; por isso, os testes de papel verificam regra de domínio, não autorização segura. A implementação usa `409` para conflito/estado inválido e `403` para aprovação sem papel permitido. Não foram adicionadas transições de rejeição/cancelamento/não comparecimento, pois suas origens e atores seguem em aberto.

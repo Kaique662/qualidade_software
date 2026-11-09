@@ -1,5 +1,7 @@
 # Resultado de desempenho - Rodada 01
 
+> Atualização em 2026-11-06: esta evidência registra uma rodada histórica anterior à API de reservas. O código agora contém `/api/reservations` e PostgreSQL/Flyway opcionais, mas nenhum novo JTL foi produzido; a decisão de desempenho continua inconclusiva.
+
 ## Decisão: inconclusivo
 
 A rodada não foi executada. Não existe `perf/resultados/rodada-01.jtl` nem `perf/relatorio-01/index.html`; portanto, não há amostras para calcular percentis, vazão ou taxa de erro. Nenhuma afirmação de desempenho é feita sobre produção ou sobre a aplicação em execução.
@@ -52,15 +54,16 @@ Nenhum valor foi arredondado ou inferido a partir de dados ausentes. Não há co
 
 ## Hipótese de gargalo
 
-A hipótese sustentada pelos dados é que o gargalo atual está na **prontidão do ambiente de medição**, não em uma operação de runtime: JMeter ausente, conexão local em `127.0.0.1:8080` recusada e endpoints de login/disponibilidade/reserva não implementados neste checkout. Esses fatos explicam a ausência de JTL, mas não permitem identificar nem inferir um gargalo de desempenho da aplicação.
+A hipótese sustentada pelos dados da rodada é que o gargalo estava na **prontidão do ambiente de medição**, não em uma operação de runtime: JMeter ausente, conexão local em `127.0.0.1:8080` recusada e endpoints ainda não implementados naquele checkout. A implementação posterior não altera a ausência de amostras nem permite inferir um gargalo de desempenho.
 
 ## Próximo experimento
 
-1. Implementar e documentar os contratos locais de autenticação, disponibilidade e criação de reserva; preparar usuários, recurso e intervalo fictícios em banco local.
-2. Disponibilizar JMeter 5.6.3 no runner e subir a aplicação exclusivamente em `127.0.0.1` com banco local descartável.
-3. Executar o comando definido para a rodada: `jmeter -n -t perf/reservas.jmx -l perf/resultados/rodada-01.jtl -e -o perf/relatorio-01`.
-4. Calcular p50/p95/p99 e vazão por label/operação a partir do JTL, contando `409` como resultado funcional e não como erro; contar falha de transporte, timeout e status não previsto como erro.
-5. Consultar diretamente o banco local após a carga e contar reservas aceitas pelo mesmo recurso e intervalo; confirmar que a contagem é no máximo um.
-6. Registrar a versão executada, o commit exato, a máquina e a configuração de carga; repetir em uma nova rodada se o grupo validar essa necessidade.
+O contrato local foi aprovado e o harness PostgreSQL está implementado em `com.example.performance.PerformanceApplication`. O guia atualizado em `docs/performance/rnf.md` descreve a inicialização e o encerramento locais. Este documento continua registrando uma rodada não executada; nenhum resultado foi acrescentado.
+
+1. Disponibilizar JMeter 5.6.3 no runner e validar que Docker Compose, PostgreSQL, aplicação e dados fictícios estão locais.
+2. Executar o comando definido para a rodada: `jmeter -n -t perf/reservas.jmx -l perf/resultados/rodada-01.jtl -e -o perf/relatorio-01`.
+3. Calcular p50/p95/p99 e vazão por label/operação a partir do JTL, contando `409` como resultado funcional e não como erro; contar falha de transporte, timeout e status diferente de `201`/`409` na criação como erro.
+4. Consultar diretamente o banco local após a carga e confirmar que a mesma sala/intervalo possui no máximo uma reserva aceita.
+5. Registrar a versão executada, o commit exato, a máquina e a configuração de carga; repetir em uma nova rodada se o grupo validar essa necessidade.
 
 Manter todos os testes estritamente locais. Os números de uma execução local não caracterizam produção.

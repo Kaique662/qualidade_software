@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
 <head><title>Núcleo | Professores</title></head>
 <body>
@@ -19,7 +18,7 @@
             <thead><tr><th>PROFESSOR</th><th>DEPARTAMENTO</th><th>CONTATO</th><th class="actions-heading">AÇÕES</th></tr></thead>
             <tbody id="teacherRows">
             <tr th:each="teacher : ${teachers}" th:attr="data-search=${teacher.name + ' ' + teacher.email + ' ' + teacher.department}">
-                <td><div class="person-cell"><span class="person-avatar avatar-blue" th:text="${#strings.substring(teacher.name, 0, 1).toUpperCase()}">A</span><span class="person-details"><strong th:text="${teacher.name}">Nome</strong><small>Professor</small></span></div></td>
+                <td><div class="person-cell"><span class="person-avatar avatar-blue" th:text="${#strings.isEmpty(teacher.name) ? '?' : #strings.substring(teacher.name, 0, 1).toUpperCase()}">A</span><span class="person-details"><strong th:text="${#strings.isEmpty(teacher.name) ? 'Nome não informado' : teacher.name}">Nome</strong><small>Professor</small></span></div></td>
                 <td><span class="department-tag" th:text="${teacher.department}">Departamento</span></td>
                 <td><a class="email-link" th:href="'mailto:' + ${teacher.email}" th:text="${teacher.email}">professor@example.com</a></td>
                 <td><div class="row-actions"><a class="icon-button" th:href="@{/teachers/{id}/edit(id=${teacher.id})}" aria-label="Editar professor" title="Editar"><i class="bi bi-pencil-square"></i></a><form th:action="@{/teachers/{id}/delete(id=${teacher.id})}" method="post" data-confirm="Remover este professor? Esta ação não pode ser desfeita."><button class="icon-button danger-action" type="submit" aria-label="Excluir professor" title="Excluir"><i class="bi bi-trash3"></i></button></form></div></td>

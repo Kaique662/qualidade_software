@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
+<head><title>Núcleo | Espaços e materiais</title></head>
+<body>
+<div id="content" class="portal-page resource-dashboard" data-resource-dashboard th:data-actor="${portalUser.username()}">
+    <section class="welcome-band manager-welcome">
+        <div class="welcome-copy">
+            <p class="eyebrow eyebrow-light"><span class="eyebrow-dot"></span> OPERAÇÕES ACADÊMICAS</p>
+            <h1>Espaços e materiais</h1>
+            <p>Inventário, condição operacional e disponibilidade dos recursos compartilhados.</p>
+        </div>
+        <div class="welcome-symbol" aria-hidden="true"><i class="bi bi-boxes"></i><span>03</span></div>
+    </section>
+
+    <section class="portal-section" aria-labelledby="inventory-title">
+        <div class="section-heading"><div><p class="eyebrow">INVENTÁRIO</p><h2 id="inventory-title">Recursos cadastrados</h2></div><span class="section-count"><span class="status-pip"></span> Dados atualizados ao abrir</span></div>
+        <div class="resource-stats" aria-live="polite">
+            <div class="resource-stat"><span>Salas</span><strong data-count="rooms">—</strong></div>
+            <div class="resource-stat"><span>Materiais</span><strong data-count="materials">—</strong></div>
+            <div class="resource-stat"><span>Em manutenção</span><strong data-count="maintenance">—</strong></div>
+        </div>
+
+        <details class="resource-create" data-resource-create>
+            <summary><span><i class="bi bi-plus-lg"></i> Cadastrar recurso</span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+            <form class="resource-form" data-resource-form>
+                <div class="resource-form-grid">
+                    <label class="field-group"><span>Código</span><input name="code" required maxlength="40" placeholder="Ex.: SALA-101"></label>
+                    <label class="field-group"><span>Nome</span><input name="name" required maxlength="120" placeholder="Nome do recurso"></label>
+                    <label class="field-group"><span>Tipo</span><select name="type" required data-resource-type><option value="ROOM">Sala</option><option value="MATERIAL">Material</option></select></label>
+                    <label class="field-group"><span>Localização</span><input name="location" required maxlength="120" placeholder="Bloco ou unidade"></label>
+                    <label class="field-group" data-room-field><span>Capacidade</span><input name="capacity" type="number" min="1" value="1" required></label>
+                    <label class="field-group" data-material-field hidden><span>Quantidade total</span><input name="totalQuantity" type="number" min="1" value="1"></label>
+                    <label class="field-group" data-material-field hidden><span>Unidade</span><input name="unit" maxlength="40" placeholder="Ex.: unidade"></label>
+                    <label class="field-group field-wide"><span>Características (separadas por vírgula)</span><input name="features" maxlength="240" placeholder="Ex.: projetor, acessibilidade"></label>
+                    <label class="field-group"><span>Preparação (min)</span><input name="preparationBufferMinutes" type="number" min="0" value="0"></label>
+                    <label class="field-group"><span>Limpeza (min)</span><input name="cleanupBufferMinutes" type="number" min="0" value="0"></label>
+                    <label class="teacher-recurring-toggle"><input name="restricted" type="checkbox"><span>Recurso restrito</span></label>
+                </div>
+                <div class="resource-form-actions"><p class="resource-feedback" data-form-feedback role="status"></p><button class="primary-button" type="submit" data-save-resource><i class="bi bi-check2"></i> Salvar recurso</button><button class="secondary-button" type="button" data-cancel-resource-edit hidden>Cancelar edição</button></div>
+            </form>
+        </details>
+
+        <div class="directory-toolbar resource-toolbar">
+            <label class="search-field"><i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">Buscar recursos</span><input type="search" placeholder="Buscar por código, nome ou local" data-resource-search></label>
+            <label class="resource-filter"><span class="visually-hidden">Filtrar por tipo</span><select data-resource-filter><option value="">Todos os tipos</option><option value="ROOM">Salas</option><option value="MATERIAL">Materiais</option></select></label>
+        </div>
+        <p class="resource-feedback" data-resource-feedback role="status" aria-live="polite">Carregando inventário...</p>
+        <div class="table-frame" data-resource-table hidden>
+            <table class="data-table resource-table">
+                <thead><tr><th>RECURSO</th><th>TIPO</th><th>LOCALIZAÇÃO</th><th>CAPACIDADE / QUANTIDADE</th><th>CONDIÇÃO</th><th>AÇÕES</th></tr></thead>
+                <tbody data-resource-rows></tbody>
+            </table>
+        </div>
+        <p class="no-search-results" data-resource-empty hidden>Nenhum recurso corresponde ao filtro.</p>
+    </section>
+
+    <section class="portal-section manager-operations" aria-labelledby="resource-agenda-title">
+        <div class="section-heading"><div><p class="eyebrow">DISPONIBILIDADE</p><h2 id="resource-agenda-title">Agenda e bloqueios</h2></div><span class="section-count">Impacto antes da confirmação</span></div>
+        <div class="manager-operations-grid">
+            <form class="resource-form manager-operation-form" data-resource-agenda-form>
+                <div class="planning-form-heading"><i class="bi bi-calendar3"></i><div><h3>Agenda do recurso</h3><p>Consultar alocações e horários ocupados</p></div></div>
+                <label class="field-group"><span>Recurso</span><select name="resourceId" required data-agenda-resource></select></label>
+                <div class="planning-fields-two">
+                    <label class="field-group"><span>Início</span><input name="startsAt" type="datetime-local" required></label>
+                    <label class="field-group"><span>Fim</span><input name="endsAt" type="datetime-local" required></label>
+                </div>
+                <button class="secondary-button" type="submit"><i class="bi bi-search"></i>Consultar agenda</button>
+                <div class="manager-result-list" data-resource-agenda-results></div>
+            </form>
+            <form class="resource-form manager-operation-form" data-resource-block-form>
+                <div class="planning-form-heading"><i class="bi bi-cone-striped"></i><div><h3>Solicitar bloqueio</h3><p>Revise as alocações impactadas antes de confirmar</p></div></div>
+                <label class="field-group"><span>Recurso</span><select name="resourceId" required data-block-resource></select></label>
+                <div class="planning-fields-two">
+                    <label class="field-group"><span>Início</span><input name="startsAt" type="datetime-local" required></label>
+                    <label class="field-group"><span>Fim</span><input name="endsAt" type="datetime-local" required></label>
+                </div>
+                <label class="field-group"><span>Motivo</span><input name="reason" maxlength="300" required></label>
+                <div class="planning-actions"><button class="secondary-button" type="button" data-preview-block><i class="bi bi-eye"></i>Ver impacto</button><button class="primary-button" type="submit" data-create-block disabled><i class="bi bi-lock"></i>Criar pendente</button></div>
+                <div class="manager-result-list" data-block-impact-results aria-live="polite"></div>
+            </form>
+        </div>
+        <div class="planning-list-heading"><div><p class="eyebrow">HISTÓRICO</p><h3>Bloqueios registrados</h3></div><button class="icon-button" type="button" data-refresh-blocks aria-label="Atualizar bloqueios" title="Atualizar"><i class="bi bi-arrow-clockwise"></i></button></div>
+        <div class="manager-block-list" data-resource-block-list></div>
+    </section>
+
+    <section class="manager-note"><span class="note-icon"><i class="bi bi-cone-striped"></i></span><div><p class="eyebrow">MANUTENÇÃO E BLOQUEIOS</p><p>Bloqueios mantêm responsável, motivo, período, atividades impactadas e histórico das decisões.</p></div></section>
+    <section class="persona-quote"><span class="quote-mark">“</span><p>O sistema precisa conhecer a condição real do recurso, não apenas mostrar um horário vazio.</p><span class="quote-credit">PERSONA 03 <i class="bi bi-dot"></i> GESTORA DE ESPAÇOS E MATERIAIS</span></section>
+</div>
+<script th:src="@{/js/resource-management.js}" defer></script>
+</body>
+</html>

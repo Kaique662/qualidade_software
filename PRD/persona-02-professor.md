@@ -30,12 +30,11 @@ Esta persona representa o professor que informa sua disponibilidade e consulta a
 ## Jornada ponta a ponta
 
 1. Acessa o período letivo correto e confere seus dados de vínculo e disciplinas.
-2. Informa horários disponíveis e indisponíveis, incluindo recorrência e validade das restrições.
-3. Distingue impedimentos obrigatórios de preferências negociáveis.
-4. Consulta a grade proposta e aponta incompatibilidades ou informações incorretas.
-5. Recebe a publicação da grade e verifica horários, salas e recursos das aulas.
-6. Consulta alterações posteriores, identificando versão, data de atualização e vigência.
-7. Abre uma solicitação de ajuste ou contesta uma mudança e acompanha seu estado e histórico.
+2. Distingue impedimentos obrigatórios de preferências negociáveis.
+3. Consulta a grade proposta e aponta incompatibilidades ou informações incorretas.
+4. Recebe a publicação da grade e verifica horários, salas e recursos das aulas.
+5. Consulta alterações posteriores, identificando versão, data de atualização e vigência.
+6. Abre uma solicitação de ajuste ou contesta uma mudança e acompanha seu estado e histórico.
 
 ## Dores e riscos
 

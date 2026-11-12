@@ -47,6 +47,17 @@ class DirectoryTemplateRenderingTest {
     }
 
     @Test
+    void teacherFormOffersPasswordForNewAccounts() {
+        WebContext context = context(
+                new PortalUser("admin", "Administrador", PortalUser.Role.ADMIN), "teachers", "/teachers/new");
+        context.setVariable("teacher", new Teacher());
+        String form = templateEngine().process("teacher/form", context);
+
+        assertTrue(form.contains("name=\"password\""));
+        assertTrue(form.contains("Mínimo de 8 caracteres"));
+    }
+
+    @Test
     void mongoFailureUsesRecoverableUnavailablePage() {
         DirectoryDataAccessExceptionHandler handler = new DirectoryDataAccessExceptionHandler();
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/teachers");

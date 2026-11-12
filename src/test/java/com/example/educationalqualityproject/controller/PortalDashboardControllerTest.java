@@ -29,6 +29,7 @@ class PortalDashboardControllerTest {
                 .andExpect(content().string(containsString("Sua agenda de aulas")))
                 .andExpect(content().string(containsString("Seus horários registrados")))
                 .andExpect(content().string(containsString("Solicitações de ajuste")))
+                .andExpect(content().string(containsString("Alterar senha")))
                 .andExpect(content().string(containsString("PERSONA 02")));
     }
 

@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TeacherControllerTest {
 
@@ -53,12 +54,17 @@ class TeacherControllerTest {
 
     @Test
     void shouldCreateTeacherAndRedirectToList() {
-        Teacher teacher = new Teacher("Ada", "ada@example.test", "Math");
+        ExtendedModelMap model = new ExtendedModelMap();
 
-        String view = controller.createTeacher(teacher);
+        String view = controller.createTeacher(
+                "Ada", "ada@example.test", "Math", "teacher-secret", model);
 
         assertEquals("redirect:/teachers", view);
-        assertSame(teacher, teacherService.savedTeacher);
+        assertEquals("Ada", teacherService.savedTeacher.getName());
+        assertEquals("ada@example.test", teacherService.savedTeacher.getEmail());
+        assertEquals("Math", teacherService.savedTeacher.getDepartment());
+        assertTrue(com.example.educationalqualityproject.auth.PasswordHasher.matches(
+                "teacher-secret", teacherService.savedTeacher.getPasswordHash()));
     }
 
     @Test
@@ -81,13 +87,42 @@ class TeacherControllerTest {
 
     @Test
     void shouldUpdateTeacherAndRedirectToList() {
-        Teacher teacher = new Teacher("Ada Lovelace", "ada@example.test", "Math");
+        Teacher teacher = new Teacher("Ada", "ada@example.test", "Math");
+        teacher.setId("teacher-1");
+        teacher.setPasswordHash(com.example.educationalqualityproject.auth.PasswordHasher.hash("old-secret"));
+        teacherService.teachersById.put("teacher-1", teacher);
 
-        String view = controller.updateTeacher("teacher-1", teacher);
+        String view = controller.updateTeacher(
+                "teacher-1", "Ada Lovelace", "ada@example.test", "Math", "", new ExtendedModelMap());
 
         assertEquals("redirect:/teachers", view);
         assertEquals("teacher-1", teacher.getId());
         assertSame(teacher, teacherService.savedTeacher);
+        assertTrue(com.example.educationalqualityproject.auth.PasswordHasher.matches(
+                "old-secret", teacher.getPasswordHash()));
+    }
+
+    @Test
+    void shouldRejectDuplicateEmailWhenCreatingTeacher() {
+        teacherService.existingTeacher = new Teacher("Grace", "ada@example.test", "Math");
+        ExtendedModelMap model = new ExtendedModelMap();
+
+        String view = controller.createTeacher(
+                "Ada", "ada@example.test", "Math", "teacher-secret", model);
+
+        assertEquals("teacher/form", view);
+        assertEquals("Este e-mail já está cadastrado.", model.get("formError"));
+        assertEquals(null, teacherService.savedTeacher);
+    }
+
+    @Test
+    void shouldRejectShortPasswordWhenCreatingTeacher() {
+        ExtendedModelMap model = new ExtendedModelMap();
+
+        String view = controller.createTeacher("Ada", "ada@example.test", "Math", "short", model);
+
+        assertEquals("teacher/form", view);
+        assertEquals(null, teacherService.savedTeacher);
     }
 
     @Test
@@ -103,6 +138,7 @@ class TeacherControllerTest {
         private final Map<String, Teacher> teachersById = new HashMap<>();
         private Teacher savedTeacher;
         private String deletedId;
+        private Teacher existingTeacher;
 
         @Override
         public List<Teacher> getAllTeachers() {
@@ -112,6 +148,20 @@ class TeacherControllerTest {
         @Override
         public Optional<Teacher> getTeacherById(String id) {
             return Optional.ofNullable(teachersById.get(id));
+        }
+
+        @Override
+        public Optional<Teacher> getTeacherByEmail(String email) {
+            if (existingTeacher != null && existingTeacher.getEmail().equalsIgnoreCase(email)) {
+                return Optional.of(existingTeacher);
+            }
+            return teachersById.values().stream()
+                    .filter(teacher -> teacher.getEmail().equalsIgnoreCase(email)).findFirst();
+        }
+
+        @Override
+        public boolean existsByEmailIgnoreCase(String email) {
+            return getTeacherByEmail(email).isPresent();
         }
 
         @Override

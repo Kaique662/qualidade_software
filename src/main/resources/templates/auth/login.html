@@ -35,8 +35,8 @@
                 <div class="login-alert login-alert-info" role="status" th:if="${param.required}">Entre para acessar essa área.</div>
                 <form class="login-form" th:action="@{/login}" method="post">
                     <label class="field-group" for="username">
-                        <span>Usuário</span>
-                        <span class="login-input"><i class="bi bi-person" aria-hidden="true"></i><input id="username" name="username" type="text" autocomplete="username" placeholder="Seu usuário" th:value="${username}" required autofocus></span>
+                        <span>E-mail ou usuário</span>
+                        <span class="login-input"><i class="bi bi-person" aria-hidden="true"></i><input id="username" name="username" type="text" autocomplete="username" placeholder="Seu e-mail profissional" th:value="${username}" required autofocus></span>
                     </label>
                     <label class="field-group" for="password">
                         <span>Senha</span>

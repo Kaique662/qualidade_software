@@ -1,5 +1,7 @@
 package com.example.educationalqualityproject.entity;
 
+import com.example.educationalqualityproject.auth.PasswordHasher;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -8,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class TeacherTest {
 
@@ -55,5 +58,16 @@ class TeacherTest {
 
         assertEquals(created, teacher.getCreatedAt());
         assertEquals(updated, teacher.getUpdatedAt());
+    }
+
+    @Test
+    void shouldNotExposePasswordHashInJson() throws Exception {
+        Teacher teacher = new Teacher("Ada", "ada@example.test", "Math");
+        teacher.setPasswordHash(PasswordHasher.hash("private-password"));
+
+        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(teacher);
+
+        assertFalse(json.contains("passwordHash"));
+        assertFalse(json.contains("private-password"));
     }
 }

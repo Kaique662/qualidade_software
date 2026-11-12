@@ -9,16 +9,18 @@
         <span class="form-symbol form-symbol-blue"><i class="bi bi-person-workspace"></i></span>
         <div><p class="eyebrow">CADASTRO DE PROFESSOR</p><h1 th:text="${teacher.id != null ? 'Editar professor' : 'Novo professor'}">Novo professor</h1><p class="page-description">Preencha os dados profissionais e de contato.</p></div>
     </section>
-    <form class="record-form" th:action="${teacher.id != null ? '/teachers/' + teacher.id : '/teachers'}" th:object="${teacher}" method="post">
+    <form class="record-form" th:action="${teacher.id != null ? '/teachers/' + teacher.id : '/teachers'}" method="post">
+        <div class="login-alert" role="alert" th:if="${formError}" th:text="${formError}"></div>
         <div class="form-section-title"><span>01</span><div><h2>Dados do professor</h2><p>Os campos marcados com * são obrigatórios.</p></div></div>
         <div class="form-fields">
-            <div class="field-group field-wide"><label for="name">Nome completo <span>*</span></label><input id="name" type="text" th:field="*{name}" autocomplete="name" maxlength="120" placeholder="Ex.: Marcos Oliveira" required></div>
-            <div class="field-group"><label for="email">E-mail profissional <span>*</span></label><input id="email" type="email" th:field="*{email}" autocomplete="email" maxlength="160" placeholder="marcos@escola.edu.br" required></div>
-            <div class="field-group"><label for="department">Departamento <span>*</span></label><input id="department" type="text" th:field="*{department}" maxlength="100" placeholder="Ex.: Ciências da Natureza" required></div>
+            <div class="field-group field-wide"><label for="name">Nome completo <span>*</span></label><input id="name" name="name" type="text" th:value="${teacher.name}" autocomplete="name" maxlength="120" placeholder="Ex.: Marcos Oliveira" required></div>
+            <div class="field-group"><label for="email">E-mail profissional <span>*</span></label><input id="email" name="email" type="email" th:value="${teacher.email}" autocomplete="email" maxlength="160" placeholder="marcos@escola.edu.br" required></div>
+            <div class="field-group"><label for="department">Departamento <span>*</span></label><input id="department" name="department" type="text" th:value="${teacher.department}" maxlength="100" placeholder="Ex.: Ciências da Natureza" required></div>
+            <div class="field-group field-wide"><label for="password">Senha <span th:if="${teacher.id == null}">*</span></label><input id="password" name="password" type="password" autocomplete="new-password" minlength="8" th:required="${teacher.id == null}" placeholder="Mínimo de 8 caracteres"><small th:if="${teacher.id != null}">Deixe em branco para manter a senha atual.</small></div>
         </div>
         <div class="form-actions"><a class="secondary-button" th:href="@{/teachers}">Cancelar</a><button class="primary-button" type="submit"><i class="bi bi-check2"></i><span th:text="${teacher.id != null ? 'Salvar alterações' : 'Criar cadastro'}">Criar cadastro</span></button></div>
     </form>
-    <p class="form-footnote"><i class="bi bi-shield-check"></i> Confira os dados antes de salvar. O e-mail deve ser único.</p>
+    <p class="form-footnote"><i class="bi bi-shield-check"></i> Confira os dados antes de salvar. O e-mail deve ser único; a senha é armazenada com hash.</p>
 </div>
 </body>
 </html>

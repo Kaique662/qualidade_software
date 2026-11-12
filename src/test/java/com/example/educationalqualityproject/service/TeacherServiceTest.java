@@ -1,5 +1,6 @@
 package com.example.educationalqualityproject.service;
 
+import com.example.educationalqualityproject.auth.PasswordHasher;
 import com.example.educationalqualityproject.entity.Teacher;
 import com.example.educationalqualityproject.repository.TeacherRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,6 +77,19 @@ class TeacherServiceTest {
         assertEquals(false, service.existsByEmail("other@example.test"));
     }
 
+    @Test
+    void shouldChangePasswordOnlyWhenCurrentPasswordMatches() {
+        Teacher teacher = new Teacher("Ada", "ada@example.test", "Math");
+        teacher.setId("teacher-1");
+        teacher.setPasswordHash(PasswordHasher.hash("old-secret"));
+        repository.teachersById.put(teacher.getId(), teacher);
+
+        assertEquals(false, service.changePassword("teacher-1", "wrong-secret", "new-secret"));
+        assertEquals(true, service.changePassword("teacher-1", "old-secret", "new-secret"));
+        assertEquals(true, PasswordHasher.matches("new-secret", teacher.getPasswordHash()));
+        assertEquals(false, PasswordHasher.matches("old-secret", teacher.getPasswordHash()));
+    }
+
     private static class FakeTeacherRepository implements InvocationHandler {
         private final List<Teacher> teachers = new ArrayList<>();
         private final Map<String, Teacher> teachersById = new HashMap<>();
@@ -98,8 +112,17 @@ class TeacherServiceTest {
                 case "save" -> save((Teacher) arguments[0]);
                 case "deleteById" -> delete((String) arguments[0]);
                 case "existsByEmail" -> emails.contains(arguments[0]);
+                case "existsByEmailIgnoreCase" -> emails.stream()
+                        .anyMatch(email -> email.equalsIgnoreCase((String) arguments[0]));
+                case "findByEmailIgnoreCase" -> findByEmail((String) arguments[0]);
                 default -> throw new UnsupportedOperationException(method.getName());
             };
+        }
+
+        private Optional<Teacher> findByEmail(String email) {
+            return teachersById.values().stream()
+                    .filter(teacher -> teacher.getEmail().equalsIgnoreCase(email))
+                    .findFirst();
         }
 
         private Teacher save(Teacher teacher) {

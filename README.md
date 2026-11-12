@@ -82,7 +82,7 @@ java -jar target/educational-quality-project-0.0.1-SNAPSHOT.jar
 
 ### Acessando a Aplicação
 
-Os nomes de usuário padrão são `admin`, `professor` e `gestora`. Os exemplos de senha de demonstração a seguir são apenas para ambiente local:
+Os nomes de usuário de demonstração são `admin`, `professor` e `gestora`. As senhas configuradas por variáveis de ambiente são apenas para ambiente local:
 
 ```bash
 export APP_ADMIN_PASSWORD='admin2'
@@ -92,7 +92,7 @@ export APP_PROFESSOR_TEACHER_ID='id-do-professor-no-mongodb'
 ./mvnw spring-boot:run
 ```
 
-O vínculo `APP_PROFESSOR_TEACHER_ID` é necessário para habilitar a disponibilidade, agenda e solicitações do professor; use o ID do cadastro existente em MongoDB. Opcionalmente, os nomes de usuário podem ser definidos com `APP_ADMIN_USERNAME`, `APP_PROFESSOR_USERNAME` e `APP_MANAGER_USERNAME`. Este login local de demonstração não substitui um provedor de identidade para produção.
+No painel administrativo, cadastre o professor com e-mail e senha (mínimo de 8 caracteres). Ele poderá entrar com o e-mail e a senha cadastrados; a senha é armazenada como hash no MongoDB. No painel do professor, use **Minha conta** para alterá-la. Ao editar o cadastro, deixe a senha vazia para mantê-la. A conta está vinculada automaticamente ao cadastro, habilitando disponibilidade, agenda e solicitações. Para logins de demonstração via ambiente, `APP_PROFESSOR_TEACHER_ID` ainda pode vincular o usuário configurado a um cadastro existente. Opcionalmente, os nomes de usuário podem ser definidos com `APP_ADMIN_USERNAME`, `APP_PROFESSOR_USERNAME` e `APP_MANAGER_USERNAME`. Este login local de demonstração não substitui um provedor de identidade para produção.
 
 Depois de iniciar a aplicação, acesse http://localhost:8080/login. O perfil é escolhido pelas credenciais usadas:
 - `admin`: painel com cadastro de estudantes e professores

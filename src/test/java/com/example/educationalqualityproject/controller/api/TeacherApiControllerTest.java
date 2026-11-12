@@ -180,5 +180,10 @@ class TeacherApiControllerTest {
         public boolean existsByEmail(String email) {
             return emails.contains(email);
         }
+
+        @Override
+        public boolean existsByEmailIgnoreCase(String email) {
+            return emails.stream().anyMatch(existing -> existing.equalsIgnoreCase(email));
+        }
     }
 }

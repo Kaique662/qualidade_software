@@ -1,5 +1,6 @@
 package com.example.educationalqualityproject.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -16,6 +17,8 @@ public class Teacher {
     private String name;
     private String email;
     private String department;
+    @JsonIgnore
+    private String passwordHash;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     @Transient
@@ -79,6 +82,17 @@ public class Teacher {
 
     public void setDepartment(String department) {
         this.department = department;
+        this.updatedAt = LocalDateTime.now(clock);
+    }
+
+    @JsonIgnore
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    @JsonIgnore
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
         this.updatedAt = LocalDateTime.now(clock);
     }
 

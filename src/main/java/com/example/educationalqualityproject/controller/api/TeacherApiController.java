@@ -65,13 +65,15 @@ public class TeacherApiController {
         }
         
         // Check if email already exists for other teachers
-        if (teacher.getEmail() != null && !teacher.getEmail().equals(existingTeacher.get().getEmail())) {
-            if (teacherService.existsByEmail(teacher.getEmail())) {
+        if (teacher.getEmail() != null
+                && !teacher.getEmail().equalsIgnoreCase(existingTeacher.get().getEmail())) {
+            if (teacherService.existsByEmailIgnoreCase(teacher.getEmail())) {
                 return new ResponseEntity<>(HttpStatus.CONFLICT);
             }
         }
         
         teacher.setId(id); // Ensure the ID remains the same
+        teacher.setPasswordHash(existingTeacher.get().getPasswordHash());
         Teacher updatedTeacher = teacherService.saveTeacher(teacher);
         return new ResponseEntity<>(updatedTeacher, HttpStatus.OK);
     }

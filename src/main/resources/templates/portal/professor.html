@@ -74,6 +74,22 @@
         <p class="teacher-link-warning" data-teacher-link-warning hidden>Vincule este login a um cadastro docente por `APP_PROFESSOR_TEACHER_ID` para carregar seus horários.</p>
     </section>
 
+    <section class="portal-section account-settings" aria-labelledby="account-settings-title">
+        <div class="section-heading"><div><p class="eyebrow">SEGURANÇA</p><h2 id="account-settings-title">Minha conta</h2></div></div>
+        <div class="teacher-form">
+            <p class="teacher-feedback" role="status" th:if="${param.passwordChanged}">Senha alterada com sucesso.</p>
+            <p class="teacher-feedback is-error" role="alert" th:if="${param.passwordError == 'mismatch'}">A confirmação não corresponde à nova senha.</p>
+            <p class="teacher-feedback is-error" role="alert" th:if="${param.passwordError == 'weak'}">A nova senha deve ter pelo menos 8 caracteres.</p>
+            <p class="teacher-feedback is-error" role="alert" th:if="${param.passwordError == 'invalid'}">Senha atual incorreta ou conta sem vínculo de professor.</p>
+            <form th:action="@{/professor/password}" method="post">
+                <label class="field-group"><span>Senha atual</span><input name="currentPassword" type="password" autocomplete="current-password" required></label>
+                <label class="field-group"><span>Nova senha</span><input name="newPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+                <label class="field-group"><span>Confirme a nova senha</span><input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+                <button class="primary-button" type="submit"><i class="bi bi-key"></i>Alterar senha</button>
+            </form>
+        </div>
+    </section>
+
     <section class="persona-quote"><span class="quote-mark">“</span><p>Quero informar meus horários possíveis uma vez e confiar que a grade publicada é a que vale.</p><span class="quote-credit">PERSONA 02 <i class="bi bi-dot"></i> PROFESSOR</span></section>
 </div>
 <script th:src="@{/js/teacher-journey.js}" defer></script>

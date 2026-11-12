@@ -295,6 +295,9 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .planning-count { display: flex; min-height: 55px; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 11px; }
 .planning-count strong { color: var(--forest); font: 700 16px 'Manrope', sans-serif; }
 .planning-records { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 15px; }
+.planning-period-item { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+.planning-period-item strong { color: var(--ink); font-size: 12px; }
+.planning-period-item p { margin: 3px 0 0; color: var(--muted); font-size: 10px; }
 .planning-records .planning-count { border: 1px solid var(--line); border-radius: 7px; background: #fff; }
 .planning-builder { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(220px, .7fr); gap: 14px; align-items: start; }
 .activity-editor { display: grid; gap: 12px; padding-top: 5px; }
@@ -331,6 +334,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .teacher-panel[hidden] { display: none; }
 .teacher-work-grid { display: grid; grid-template-columns: minmax(270px, .85fr) minmax(0, 1.2fr); gap: 14px; align-items: start; }
 .teacher-form, .teacher-list-panel, .teacher-request-form { display: grid; align-content: start; gap: 13px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.account-settings .teacher-form > form { display: grid; max-width: 480px; gap: 13px; }
 .teacher-form .field-group > span, .teacher-request-form .field-group > span { color: #42534e; font-size: 10px; font-weight: 700; }
 .teacher-form input, .teacher-form select, .teacher-request-form select, .teacher-request-form textarea { width: 100%; min-width: 0; min-height: 39px; padding: 8px 10px; border: 1px solid #dce5e1; border-radius: 6px; outline: 0; color: var(--ink); background: #fff; font: 11px 'DM Sans', sans-serif; }
 .teacher-form input:focus, .teacher-form select:focus, .teacher-request-form select:focus, .teacher-request-form textarea:focus { border-color: #7fa69a; box-shadow: 0 0 0 3px rgba(91,145,128,.1); }

@@ -1,7 +1,13 @@
 package com.example.educationalqualityproject.auth;
 
+import com.example.educationalqualityproject.entity.Teacher;
+import com.example.educationalqualityproject.repository.TeacherRepository;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,5 +41,23 @@ class PortalLoginServiceTest {
                 "admin", "", "professor", "", "gestora", "");
 
         assertTrue(service.authenticate("admin", "anything").isEmpty());
+    }
+
+    @Test
+    void authenticatesRegisteredTeacherByEmailAndPasswordHash() {
+        TeacherRepository repository = mock(TeacherRepository.class);
+        Teacher teacher = new Teacher("Ada", "ada@example.test", "Math");
+        teacher.setId("teacher-1");
+        teacher.setPasswordHash(PasswordHasher.hash("teacher-secret"));
+        when(repository.findByEmailIgnoreCase("ada@example.test")).thenReturn(Optional.of(teacher));
+        PortalLoginService service = new PortalLoginService(
+                "admin", "admin-secret", "professor", "", "", "gestora", "", repository);
+
+        PortalUser user = service.authenticate("ada@example.test", "teacher-secret").orElseThrow();
+
+        assertEquals(PortalUser.Role.PROFESSOR, user.role());
+        assertEquals("teacher-1", user.teacherId());
+        assertEquals("Ada", user.displayName());
+        assertTrue(service.authenticate("ada@example.test", "wrong").isEmpty());
     }
 }

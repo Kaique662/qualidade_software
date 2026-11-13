@@ -1,116 +1,226 @@
 <!DOCTYPE html>
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(~{::#content})}">
-<head><title>Núcleo | Planejamento acadêmico</title></head>
+
+<head>
+    <title>Núcleo | Planejamento acadêmico</title>
+</head>
+
 <body>
-<div id="content" class="portal-page academic-planning-page" data-academic-planning th:data-actor="${portalUser.username()}">
-    <section class="welcome-band planning-welcome">
-        <div class="welcome-copy">
-            <p class="eyebrow eyebrow-light"><span class="eyebrow-dot"></span> COORDENAÇÃO ACADÊMICA</p>
-            <h1>Planejamento acadêmico</h1>
-            <p>Períodos, ofertas e versões de grade em um só fluxo.</p>
-        </div>
-        <div class="welcome-symbol" aria-hidden="true"><i class="bi bi-calendar2-range"></i><span>04</span></div>
-    </section>
-
-    <section class="planning-section" aria-labelledby="planning-title">
-        <div class="section-heading">
-            <div><p class="eyebrow">ESPAÇO ADMINISTRATIVO</p><h2 id="planning-title">Operação do período</h2></div>
-            <p class="planning-feedback" data-planning-feedback role="status" aria-live="polite">Carregando dados acadêmicos...</p>
-        </div>
-        <div class="planning-tabs" role="tablist" aria-label="Áreas do planejamento">
-            <button type="button" class="planning-tab is-active" role="tab" aria-selected="true" data-planning-tab="catalog">Cadastros</button>
-            <button type="button" class="planning-tab" role="tab" aria-selected="false" data-planning-tab="schedules">Grades</button>
-            <button type="button" class="planning-tab" role="tab" aria-selected="false" data-planning-tab="review">Revisão</button>
-            <button type="button" class="planning-tab" role="tab" aria-selected="false" data-planning-tab="audit">Auditoria e relatórios</button>
-        </div>
-
-        <section class="planning-panel" role="tabpanel" data-planning-panel="catalog">
-            <div class="planning-grid">
-                <form class="planning-form" data-create-period>
-                    <div class="planning-form-heading"><i class="bi bi-calendar3"></i><div><h3>Período letivo</h3><p>Novo calendário acadêmico</p></div></div>
-                    <label class="field-group"><span>Identificação</span><input name="name" required maxlength="80" placeholder="2026.2"></label>
-                    <div class="planning-fields-two">
-                        <label class="field-group"><span>Início</span><input type="date" name="startsOn" required></label>
-                        <label class="field-group"><span>Fim</span><input type="date" name="endsOn" required></label>
-                    </div>
-                    <button class="primary-button" type="submit"><i class="bi bi-plus-lg"></i>Criar período</button>
-                </form>
-                <form class="planning-form" data-create-course>
-                    <div class="planning-form-heading"><i class="bi bi-book"></i><div><h3>Curso</h3><p>Catálogo de cursos</p></div></div>
-                    <label class="field-group"><span>Código</span><input name="code" required maxlength="40"></label>
-                    <label class="field-group"><span>Nome</span><input name="name" required maxlength="120"></label>
-                    <label class="field-group"><span>Descrição</span><input name="description" maxlength="240"></label>
-                    <button class="primary-button" type="submit"><i class="bi bi-plus-lg"></i>Criar curso</button>
-                </form>
-                <form class="planning-form" data-create-class>
-                    <div class="planning-form-heading"><i class="bi bi-people"></i><div><h3>Turma</h3><p>Oferta por curso e período</p></div></div>
-                    <label class="field-group"><span>Código</span><input name="code" required maxlength="40"></label>
-                    <label class="field-group"><span>Nome</span><input name="name" required maxlength="120"></label>
-                    <label class="field-group"><span>Curso</span><select name="courseId" required data-course-options></select></label>
-                    <label class="field-group"><span>Período</span><select name="academicPeriodId" required data-period-options></select></label>
-                    <button class="primary-button" type="submit"><i class="bi bi-plus-lg"></i>Criar turma</button>
-                </form>
-                <form class="planning-form" data-create-subject>
-                    <div class="planning-form-heading"><i class="bi bi-journal-text"></i><div><h3>Disciplina</h3><p>Componente curricular</p></div></div>
-                    <label class="field-group"><span>Código</span><input name="code" required maxlength="40"></label>
-                    <label class="field-group"><span>Nome</span><input name="name" required maxlength="120"></label>
-                    <label class="field-group"><span>Curso</span><select name="courseId" required data-course-options></select></label>
-                    <button class="primary-button" type="submit"><i class="bi bi-plus-lg"></i>Criar disciplina</button>
-                </form>
+    <div id="content" class="portal-page academic-planning-page" data-academic-planning
+        th:data-actor="${portalUser.username()}">
+        <section class="welcome-band planning-welcome">
+            <div class="welcome-copy">
+                <p class="eyebrow eyebrow-light"><span class="eyebrow-dot"></span> COORDENAÇÃO ACADÊMICA</p>
+                <h1>Planejamento acadêmico</h1>
+                <p>Períodos, ofertas e versões de grade em um só fluxo.</p>
             </div>
-            <div class="planning-records" data-catalog-summary></div>
+            <div class="welcome-symbol" aria-hidden="true"><i class="bi bi-calendar2-range"></i><span>04</span></div>
         </section>
 
-        <section class="planning-panel" role="tabpanel" data-planning-panel="schedules" hidden>
-            <div class="planning-builder">
-                <form class="planning-form schedule-form" data-create-schedule>
-                    <div class="planning-form-heading"><i class="bi bi-calendar-plus"></i><div><h3>Novo rascunho</h3><p>Monte as atividades antes de salvar a versão</p></div></div>
-                    <label class="field-group"><span>Nome da grade</span><input name="name" required maxlength="120" placeholder="Grade 2026.2"></label>
-                    <label class="field-group"><span>Período</span><select name="academicPeriodId" required data-period-options></select></label>
-                    <div class="activity-editor" data-activity-editor>
-                        <h4>Atividade</h4>
-                        <div class="planning-fields-two">
-                            <label class="field-group"><span>Turma</span><select name="classId" required data-class-options></select></label>
-                            <label class="field-group"><span>Disciplina</span><select name="subjectId" required data-subject-options></select></label>
-                            <label class="field-group"><span>Professor</span><select name="teacherId" required data-teacher-options></select></label>
-                            <label class="field-group"><span>Curso</span><select name="courseId" required data-course-options></select></label>
-                            <label class="field-group"><span>Início</span><input name="startsAt" type="datetime-local" required></label>
-                            <label class="field-group"><span>Fim</span><input name="endsAt" type="datetime-local" required></label>
-                            <label class="field-group"><span>Sala</span><select name="roomResourceId" data-room-options></select></label>
-                            <label class="field-group"><span>Material</span><select name="materialId" data-material-options></select></label>
-                            <label class="field-group"><span>Quantidade de material</span><input name="materialQuantity" type="number" min="1" value="1"></label>
+        <section class="planning-section" aria-labelledby="planning-title">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">ESPAÇO ADMINISTRATIVO</p>
+                    <h2 id="planning-title">Operação do período</h2>
+                </div>
+                <p class="planning-feedback" data-planning-feedback role="status" aria-live="polite">Carregando dados
+                    acadêmicos...</p>
+            </div>
+            <div class="planning-tabs" role="tablist" aria-label="Áreas do planejamento">
+                <button type="button" class="planning-tab is-active" role="tab" aria-selected="true"
+                    data-planning-tab="catalog">Cadastros</button>
+                <button type="button" class="planning-tab" role="tab" aria-selected="false"
+                    data-planning-tab="schedules">Grades</button>
+                <button type="button" class="planning-tab" role="tab" aria-selected="false"
+                    data-planning-tab="review">Revisão</button>
+                <button type="button" class="planning-tab" role="tab" aria-selected="false"
+                    data-planning-tab="audit">Auditoria e relatórios</button>
+            </div>
+
+            <section class="planning-panel" role="tabpanel" data-planning-panel="catalog">
+                <div class="planning-grid">
+                    <form class="planning-form" data-create-period>
+                        <div class="planning-form-heading"><i class="bi bi-calendar3"></i>
+                            <div>
+                                <h3>Período letivo</h3>
+                                <p>Novo calendário acadêmico</p>
+                            </div>
                         </div>
-                        <button class="secondary-button" type="button" data-add-activity><i class="bi bi-plus-lg"></i>Adicionar atividade</button>
-                        <ul class="activity-queue" data-activity-queue aria-live="polite"></ul>
+                        <label class="field-group"><span>Identificação</span><input name="name" required maxlength="80"
+                                placeholder="2026.2"></label>
+                        <div class="planning-fields-two">
+
+                            <label class="field-group">
+                                <span>Início</span>
+                                <input type="date" name="startsOn" required>
+                            </label>
+
+                            <label class="field-group">
+                                <span>Fim</span>
+                                <input type="date" name="endsOn" required>
+                            </label>
+
+
+                        </div>
+                        <button class="primary-button" type="submit"><i class="bi bi-plus-lg"></i>Criar período</button>
+                    </form>
+                    <form class="planning-form" data-create-course>
+                        <div class="planning-form-heading"><i class="bi bi-book"></i>
+                            <div>
+                                <h3>Curso</h3>
+                                <p>Catálogo de cursos</p>
+                            </div>
+                        </div>
+                        <label class="field-group"><span>Código</span><input name="code" required
+                                maxlength="40"></label>
+                        <label class="field-group"><span>Nome</span><input name="name" required maxlength="120"></label>
+                        <label class="field-group"><span>Descrição</span><input name="description"
+                                maxlength="240"></label>
+                        <button class="primary-button" type="submit"><i class="bi bi-plus-lg"></i>Criar curso</button>
+                    </form>
+                    <form class="planning-form" data-create-class>
+                        <div class="planning-form-heading"><i class="bi bi-people"></i>
+                            <div>
+                                <h3>Turma</h3>
+                                <p>Oferta por curso e período</p>
+                            </div>
+                        </div>
+                        <label class="field-group"><span>Código</span><input name="code" required
+                                maxlength="40"></label>
+                        <label class="field-group"><span>Nome</span><input name="name" required maxlength="120"></label>
+                        <label class="field-group"><span>Curso</span><select name="courseId" required
+                                data-course-options></select></label>
+                        <label class="field-group"><span>Período</span><select name="academicPeriodId" required
+                                data-period-options></select></label>
+                        <button class="primary-button" type="submit"><i class="bi bi-plus-lg"></i>Criar turma</button>
+                    </form>
+                    <form class="planning-form" data-create-subject>
+                        <div class="planning-form-heading"><i class="bi bi-journal-text"></i>
+                            <div>
+                                <h3>Disciplina</h3>
+                                <p>Componente curricular</p>
+                            </div>
+                        </div>
+                        <label class="field-group"><span>Código</span><input name="code" required
+                                maxlength="40"></label>
+                        <label class="field-group"><span>Nome</span><input name="name" required maxlength="120"></label>
+                        <label class="field-group"><span>Curso</span><select name="courseId" required
+                                data-course-options></select></label>
+                        <button class="primary-button" type="submit"><i class="bi bi-plus-lg"></i>Criar
+                            disciplina</button>
+                    </form>
+                </div>
+                <div class="planning-records" data-catalog-summary></div>
+            </section>
+
+            <section class="planning-panel" role="tabpanel" data-planning-panel="schedules" hidden>
+                <div class="planning-builder">
+                    <form class="planning-form schedule-form" data-create-schedule>
+                        <div class="planning-form-heading"><i class="bi bi-calendar-plus"></i>
+                            <div>
+                                <h3>Novo rascunho</h3>
+                                <p>Monte as atividades antes de salvar a versão</p>
+                            </div>
+                        </div>
+                        <label class="field-group"><span>Nome da grade</span><input name="name" required maxlength="120"
+                                placeholder="Grade 2026.2"></label>
+                        <label class="field-group"><span>Período</span><select name="academicPeriodId" required
+                                data-period-options></select></label>
+                        <div class="activity-editor" data-activity-editor>
+                            <h4>Atividade</h4>
+                            <div class="planning-fields-two">
+                                <label class="field-group"><span>Turma</span><select name="classId" required
+                                        data-class-options></select></label>
+                                <label class="field-group"><span>Disciplina</span><select name="subjectId" required
+                                        data-subject-options></select></label>
+                                <label class="field-group"><span>Professor</span><select name="teacherId" required
+                                        data-teacher-options></select></label>
+                                <label class="field-group"><span>Curso</span><select name="courseId" required
+                                        data-course-options></select></label>
+
+                                <label class="field-group">
+                                    <span>Início</span>
+                                    <input name="startsAt" type="datetime-local">
+                                </label>
+
+                                <label class="field-group">
+                                    <span>Fim</span>
+                                    <input name="endsAt" type="datetime-local">
+                                </label>
+
+                                <label class="field-group"><span>Sala</span><select name="roomResourceId"
+                                        data-room-options></select></label>
+                                <label class="field-group"><span>Material</span><select name="materialId"
+                                        data-material-options></select></label>
+                                <label class="field-group"><span>Quantidade de material</span><input
+                                        name="materialQuantity" type="number" min="1" value="1"></label>
+                            </div>
+                            <button class="secondary-button" type="button" data-add-activity><i
+                                    class="bi bi-plus-lg"></i>Adicionar atividade</button>
+                            <ul class="activity-queue" data-activity-queue aria-live="polite"></ul>
+                        </div>
+                        <button class="primary-button" type="submit"><i class="bi bi-save2"></i>Salvar como rascunho</button>
+                    </form>
+                    <aside class="planning-side-note"><span class="portal-icon"><i
+                                class="bi bi-shield-check"></i></span>
+                        <p class="eyebrow">VALIDAÇÃO</p>
+                        <h3>Conflitos antes da revisão</h3>
+                        <p>Professores, salas e materiais são verificados ao salvar as atividades alocadas. Ajustes de
+                            sala e material continuam disponíveis na gestão de recursos.</p>
+                    </aside>
+                </div>
+                <div class="planning-list-heading">
+                    <div>
+                        <p class="eyebrow">VERSÕES</p>
+                        <h3>Grades do período</h3>
+                    </div><label class="field-group"><span>Filtrar por período</span><select
+                            data-schedule-period-filter></select></label>
+                </div>
+                <div class="planning-schedule-list" data-schedule-list></div>
+            </section>
+
+            <section class="planning-panel" role="tabpanel" data-planning-panel="review" hidden>
+                <div class="planning-list-heading">
+                    <div>
+                        <p class="eyebrow">FILA DE DECISÃO</p>
+                        <h3>Grades submetidas</h3>
+                    </div><button class="secondary-button" type="button" data-refresh-schedules><i
+                            class="bi bi-arrow-clockwise"></i>Atualizar</button>
+                </div>
+                <div class="planning-schedule-list" data-review-list></div>
+                <div class="planning-list-heading">
+                    <div>
+                        <p class="eyebrow">SOLICITAÇÕES</p>
+                        <h3>Ajustes de professores</h3>
                     </div>
-                    <button class="primary-button" type="submit"><i class="bi bi-save2"></i>Salvar como rascunho</button>
-                </form>
-                <aside class="planning-side-note"><span class="portal-icon"><i class="bi bi-shield-check"></i></span><p class="eyebrow">VALIDAÇÃO</p><h3>Conflitos antes da revisão</h3><p>Professores, salas e materiais são verificados ao salvar as atividades alocadas. Ajustes de sala e material continuam disponíveis na gestão de recursos.</p></aside>
-            </div>
-            <div class="planning-list-heading"><div><p class="eyebrow">VERSÕES</p><h3>Grades do período</h3></div><label class="field-group"><span>Filtrar por período</span><select data-schedule-period-filter></select></label></div>
-            <div class="planning-schedule-list" data-schedule-list></div>
-        </section>
+                </div>
+                <div class="planning-requests" data-adjustment-list></div>
+            </section>
 
-        <section class="planning-panel" role="tabpanel" data-planning-panel="review" hidden>
-            <div class="planning-list-heading"><div><p class="eyebrow">FILA DE DECISÃO</p><h3>Grades submetidas</h3></div><button class="secondary-button" type="button" data-refresh-schedules><i class="bi bi-arrow-clockwise"></i>Atualizar</button></div>
-            <div class="planning-schedule-list" data-review-list></div>
-            <div class="planning-list-heading"><div><p class="eyebrow">SOLICITAÇÕES</p><h3>Ajustes de professores</h3></div></div>
-            <div class="planning-requests" data-adjustment-list></div>
+            <section class="planning-panel" role="tabpanel" data-planning-panel="audit" hidden>
+                <div class="planning-fields-two planning-report-filters">
+                    <label class="field-group"><span>Período</span><select data-report-period></select></label>
+                    <label class="field-group"><span>Turma</span><select data-report-class></select></label>
+                    <label class="field-group"><span>Professor (ID)</span><select data-report-teacher></select></label>
+                    <label class="field-group"><span>Sala (ID)</span><select data-report-room></select></label>
+                    <label class="field-group"><span>Estado</span><select data-report-status>
+                            <option value="">Todos</option>
+                            <option>RASCUNHO</option>
+                            <option>PENDENTE_APROVACAO</option>
+                            <option>APROVADA</option>
+                            <option>REJEITADA</option>
+                            <option>PUBLICADA</option>
+                        </select></label>
+                    <div class="planning-report-actions"><button class="primary-button" type="button" data-run-report><i
+                                class="bi bi-funnel"></i>Gerar relatório</button><button class="secondary-button"
+                            type="button" data-export-report disabled><i class="bi bi-download"></i>Exportar
+                            JSON</button></div>
+                </div>
+                <div class="planning-report-output" data-report-output></div>
+            </section>
         </section>
-
-        <section class="planning-panel" role="tabpanel" data-planning-panel="audit" hidden>
-            <div class="planning-fields-two planning-report-filters">
-                <label class="field-group"><span>Período</span><select data-report-period></select></label>
-                <label class="field-group"><span>Turma</span><select data-report-class></select></label>
-                <label class="field-group"><span>Professor (ID)</span><select data-report-teacher></select></label>
-                <label class="field-group"><span>Sala (ID)</span><select data-report-room></select></label>
-                <label class="field-group"><span>Estado</span><select data-report-status><option value="">Todos</option><option>RASCUNHO</option><option>PENDENTE_APROVACAO</option><option>APROVADA</option><option>REJEITADA</option><option>PUBLICADA</option></select></label>
-                <div class="planning-report-actions"><button class="primary-button" type="button" data-run-report><i class="bi bi-funnel"></i>Gerar relatório</button><button class="secondary-button" type="button" data-export-report disabled><i class="bi bi-download"></i>Exportar JSON</button></div>
-            </div>
-            <div class="planning-report-output" data-report-output></div>
-        </section>
-    </section>
-</div>
-<script th:src="@{/js/academic-planning.js}" defer></script>
+    </div>
+    <script th:src="@{/js/academic-planning.js}" defer></script>
 </body>
+
 </html>

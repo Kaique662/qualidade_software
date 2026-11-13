@@ -137,10 +137,24 @@ function initializeAcademicPlanning(root) {
         const editor = root.querySelector("[data-activity-editor]");
         const values = Object.fromEntries([...editor.querySelectorAll("input[name], select[name]")]
             .map((field) => [field.name, field.value]));
-        if (Object.values(values).some((value) => !value)) {
-            setFeedback("Preencha turma, disciplina, professor e intervalo antes de adicionar.", true);
+
+        const requiredFields = [
+            "classId",
+            "subjectId",
+            "teacherId",
+            "courseId",
+            "startsAt",
+            "endsAt"
+        ];
+
+        if (requiredFields.some((field) => !values[field])) {
+            setFeedback(
+                "Preencha turma, disciplina, professor, curso e horários.",
+                true
+            );
             return;
         }
+
         if (new Date(values.endsAt) <= new Date(values.startsAt)) {
             setFeedback("O fim da atividade deve ser posterior ao início.", true);
             return;
@@ -178,292 +192,333 @@ function initializeAcademicPlanning(root) {
         });
     }
 
-    root.querySelector("[data-create-schedule]").addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        if (!queue.length) {
-            setFeedback("Adicione ao menos uma atividade à grade.", true);
-            return;
-        }
-        const values = new FormData(form);
-        const allocationDetails = queue.map(({ teacherId, roomResourceId, materialId, materialQuantity, ...activity }) => ({
-            roomResourceId, materialId, materialQuantity
-        }));
-        const schedule = {
-            name: values.get("name"),
-            academicPeriodId: values.get("academicPeriodId"),
-            activities: queue.map(({ teacherId, roomResourceId, materialId, materialQuantity, ...activity }) => activity)
-        };
-        let saved = null;
-        try {
-            saved = await api(`/api/schedules?actor=${encodeURIComponent(actor)}`, {
-                method: "POST", body: JSON.stringify(schedule)
-            });
-            for (let index = 0; index < allocationDetails.length; index += 1) {
-                const allocation = allocationDetails[index];
-                if (!allocation.roomResourceId) continue;
-                const activity = saved.activities[index];
-                const materials = allocation.materialId
-                    ? [{ resourceId: allocation.materialId, quantity: Number(allocation.materialQuantity) }]
-                    : [];
-                saved = await api(`/api/schedules/${encodeURIComponent(saved.id)}/activities/${encodeURIComponent(activity.id)}/allocation?actor=${encodeURIComponent(actor)}&expectedVersion=${saved.versionNumber}`, {
-                    method: "PUT",
-                    body: JSON.stringify({ roomResourceId: allocation.roomResourceId, materials })
-                });
+        const scheduleForm = root.querySelector("[data-create-schedule]");
+        let savingSchedule = false;
+
+        scheduleForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            if (savingSchedule) return;
+
+            if (!queue.length) {
+                setFeedback(
+                    "Adicione ao menos uma atividade à grade.",
+                    true
+                );
+                return;
             }
-            queue.splice(0, queue.length);
-            renderQueue();
-            form.reset();
-            setFeedback("Rascunho salvo.");
-            await loadSchedules();
-        } catch (error) {
-            if (saved) {
+
+            const form = event.currentTarget;
+            const values = new FormData(form);
+
+            // Envia a grade com as alocações incluídas.
+            const schedule = {
+                name: values.get("name"),
+                academicPeriodId: values.get("academicPeriodId"),
+                activities: queue.map((item) => {
+                    const {
+                        teacherId,
+                        materialId,
+                        materialQuantity,
+                        ...activity
+                    } = item;
+
+                    return {
+                        ...activity,
+                        roomResourceId: activity.roomResourceId || null,
+                        materials: materialId
+                            ? [{
+                                resourceId: materialId,
+                                quantity: Number(materialQuantity)
+                            }]
+                            : []
+                    };
+                })
+            };
+
+            const submitButton = form.querySelector(
+                'button[type="submit"]'
+            );
+
+            savingSchedule = true;
+
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+
+            try {
+                await api(
+                    `/api/schedules?actor=${encodeURIComponent(actor)}`,
+                    {
+                        method: "POST",
+                        body: JSON.stringify(schedule)
+                    }
+                );
+
                 queue.splice(0, queue.length);
                 renderQueue();
                 form.reset();
+
+                setFeedback("Grade validada e rascunho salvo.");
+
                 await loadSchedules();
-                setFeedback(`Rascunho ${saved.name} salvo, mas uma alocação falhou: ${error.message}`, true);
-            } else {
+                
+            } catch (error) {
+                setFeedback(
+                    `Não foi possível salvar a grade: ${error.message}`,
+                    true
+                );
+
+                // Mantém os dados para o usuário corrigir.
+
+            } finally {
+                savingSchedule = false;
+
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+            }
+        });
+
+
+        function makeButton(label, icon, action, kind = "secondary-button") {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = kind;
+            button.innerHTML = `<i class="bi ${icon}"></i>${label}`;
+            button.addEventListener("click", action);
+            return button;
+        }
+
+        async function loadSchedules() {
+            try {
+                state.schedules = await api("/api/schedules");
+                renderSchedules();
+                await loadAdjustments();
+            } catch (error) {
                 setFeedback(error.message, true);
             }
         }
-    });
 
-    function makeButton(label, icon, action, kind = "secondary-button") {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = kind;
-        button.innerHTML = `<i class="bi ${icon}"></i>${label}`;
-        button.addEventListener("click", action);
-        return button;
-    }
-
-    async function loadSchedules() {
-        try {
-            state.schedules = await api("/api/schedules");
-            renderSchedules();
-            await loadAdjustments();
-        } catch (error) {
-            setFeedback(error.message, true);
+        function renderSchedules() {
+            const filter = root.querySelector("[data-schedule-period-filter]").value;
+            const schedules = state.schedules.filter((item) => !filter || item.academicPeriodId === filter);
+            const list = root.querySelector("[data-schedule-list]");
+            const review = root.querySelector("[data-review-list]");
+            list.replaceChildren();
+            review.replaceChildren();
+            schedules.forEach((schedule) => list.append(renderSchedule(schedule)));
+            schedules.filter((item) => item.status === "PENDENTE_APROVACAO").forEach((schedule) => review.append(renderSchedule(schedule, true)));
+            if (!schedules.length) list.append(emptyMessage("Nenhuma grade neste período."));
+            if (!review.children.length) review.append(emptyMessage("Nenhuma grade aguarda aprovação."));
         }
-    }
 
-    function renderSchedules() {
-        const filter = root.querySelector("[data-schedule-period-filter]").value;
-        const schedules = state.schedules.filter((item) => !filter || item.academicPeriodId === filter);
-        const list = root.querySelector("[data-schedule-list]");
-        const review = root.querySelector("[data-review-list]");
-        list.replaceChildren();
-        review.replaceChildren();
-        schedules.forEach((schedule) => list.append(renderSchedule(schedule)));
-        schedules.filter((item) => item.status === "PENDENTE_APROVACAO").forEach((schedule) => review.append(renderSchedule(schedule, true)));
-        if (!schedules.length) list.append(emptyMessage("Nenhuma grade neste período."));
-        if (!review.children.length) review.append(emptyMessage("Nenhuma grade aguarda aprovação."));
-    }
-
-    function renderSchedule(schedule, reviewMode = false) {
-        const card = document.createElement("article");
-        card.className = "planning-schedule-item";
-        const top = document.createElement("div");
-        top.className = "planning-schedule-top";
-        const heading = document.createElement("div");
-        const title = document.createElement("h4");
-        title.textContent = schedule.name;
-        const meta = document.createElement("p");
-        const period = state.periods.find((item) => item.id === schedule.academicPeriodId);
-        meta.textContent = `${period?.name || "Período"} · v${schedule.versionNumber} · ${schedule.activities?.length || 0} atividades`;
-        heading.append(title, meta);
-        const status = document.createElement("span");
-        status.className = `schedule-status status-${schedule.status.toLowerCase()}`;
-        status.textContent = schedule.status.replaceAll("_", " ");
-        top.append(heading, status);
-        const actions = document.createElement("div");
-        actions.className = "planning-actions";
-        actions.append(makeButton("Versões", "bi-clock-history", () => showVersions(schedule)));
-        actions.append(makeButton("Auditoria", "bi-journal-check", () => showAudit(schedule)));
-        if (schedule.status === "RASCUNHO") {
-            actions.append(makeButton("Submeter", "bi-send", () => transition(schedule, "submit-for-approval"), "primary-button"));
+        function renderSchedule(schedule, reviewMode = false) {
+            const card = document.createElement("article");
+            card.className = "planning-schedule-item";
+            const top = document.createElement("div");
+            top.className = "planning-schedule-top";
+            const heading = document.createElement("div");
+            const title = document.createElement("h4");
+            title.textContent = schedule.name;
+            const meta = document.createElement("p");
+            const period = state.periods.find((item) => item.id === schedule.academicPeriodId);
+            meta.textContent = `${period?.name || "Período"} · v${schedule.versionNumber} · ${schedule.activities?.length || 0} atividades`;
+            heading.append(title, meta);
+            const status = document.createElement("span");
+            status.className = `schedule-status status-${schedule.status.toLowerCase()}`;
+            status.textContent = schedule.status.replaceAll("_", " ");
+            top.append(heading, status);
+            const actions = document.createElement("div");
+            actions.className = "planning-actions";
+            actions.append(makeButton("Versões", "bi-clock-history", () => showVersions(schedule)));
+            actions.append(makeButton("Auditoria", "bi-journal-check", () => showAudit(schedule)));
+            if (schedule.status === "RASCUNHO") {
+                actions.append(makeButton("Submeter", "bi-send", () => transition(schedule, "submit-for-approval"), "primary-button"));
+            }
+            if (schedule.status === "PENDENTE_APROVACAO") {
+                actions.append(makeButton("Aprovar", "bi-check2-circle", () => transition(schedule, "approve"), "primary-button"));
+                actions.append(makeButton("Rejeitar", "bi-x-circle", () => reject(schedule), "secondary-button"));
+            }
+            if (schedule.status === "APROVADA") {
+                actions.append(makeButton("Publicar", "bi-megaphone", () => transition(schedule, "publish"), "primary-button"));
+            }
+            const output = document.createElement("pre");
+            output.className = "planning-detail-output";
+            output.hidden = true;
+            card.append(top, actions, output);
+            card.dataset.scheduleId = schedule.id;
+            if (reviewMode) card.classList.add("is-review-item");
+            return card;
         }
-        if (schedule.status === "PENDENTE_APROVACAO") {
-            actions.append(makeButton("Aprovar", "bi-check2-circle", () => transition(schedule, "approve"), "primary-button"));
-            actions.append(makeButton("Rejeitar", "bi-x-circle", () => reject(schedule), "secondary-button"));
+
+        function emptyMessage(text) {
+            const message = document.createElement("p");
+            message.className = "planning-empty";
+            message.textContent = text;
+            return message;
         }
-        if (schedule.status === "APROVADA") {
-            actions.append(makeButton("Publicar", "bi-megaphone", () => transition(schedule, "publish"), "primary-button"));
-        }
-        const output = document.createElement("pre");
-        output.className = "planning-detail-output";
-        output.hidden = true;
-        card.append(top, actions, output);
-        card.dataset.scheduleId = schedule.id;
-        if (reviewMode) card.classList.add("is-review-item");
-        return card;
-    }
 
-    function emptyMessage(text) {
-        const message = document.createElement("p");
-        message.className = "planning-empty";
-        message.textContent = text;
-        return message;
-    }
-
-    async function showVersions(schedule) {
-        const card = root.querySelector(`[data-schedule-id="${CSS.escape(schedule.id)}"]`);
-        const output = card?.querySelector(".planning-detail-output");
-        if (!output) return;
-        try {
-            const versions = await api(`/api/schedules/${encodeURIComponent(schedule.id)}/versions`);
-            output.hidden = false;
-            output.replaceChildren();
-            const select = document.createElement("select");
-            select.setAttribute("aria-label", "Versão de origem");
-            const selectTo = document.createElement("select");
-            selectTo.setAttribute("aria-label", "Versão de destino");
-            versions.forEach((version) => {
-                option(select, version.number, `v${version.number} · ${version.createdBy || "sistema"}`);
-                option(selectTo, version.number, `v${version.number} · ${version.createdBy || "sistema"}`);
-            });
-            select.value = String(Math.max(1, schedule.versionNumber - 1));
-            selectTo.value = String(schedule.versionNumber);
-            const compare = makeButton("Comparar", "bi-arrow-left-right", async () => {
-                try {
-                    const changes = await api(`/api/schedules/${encodeURIComponent(schedule.id)}/versions/compare?fromVersion=${select.value}&toVersion=${selectTo.value}`);
-                    output.dataset.comparison = JSON.stringify(changes, null, 2);
-                    renderDetailOutput(output);
-                } catch (error) { setFeedback(error.message, true); }
-            });
-            const versionsText = document.createElement("p");
-            versionsText.textContent = versions.map((version) => `v${version.number}: ${version.activities.length} atividades`).join(" · ");
-            output.append(versionsText, select, selectTo, compare);
-        } catch (error) { setFeedback(error.message, true); }
-    }
-
-    async function showAudit(schedule) {
-        const card = root.querySelector(`[data-schedule-id="${CSS.escape(schedule.id)}"]`);
-        const output = card?.querySelector(".planning-detail-output");
-        if (!output) return;
-        try {
-            const events = await api(`/api/schedules/${encodeURIComponent(schedule.id)}/audit`);
-            output.dataset.comparison = JSON.stringify(events, null, 2);
-            output.hidden = false;
-            renderDetailOutput(output);
-        } catch (error) { setFeedback(error.message, true); }
-    }
-
-    function renderDetailOutput(output) {
-        const pre = document.createElement("code");
-        pre.textContent = output.dataset.comparison || "[]";
-        output.append(pre);
-    }
-
-    async function transition(schedule, action) {
-        try {
-            await api(`/api/schedules/${encodeURIComponent(schedule.id)}/${action}?actor=${encodeURIComponent(actor)}`, { method: "POST" });
-            setFeedback("Estado da grade atualizado.");
-            await loadSchedules();
-        } catch (error) { setFeedback(error.message, true); }
-    }
-
-    async function reject(schedule) {
-        const justification = window.prompt("Justificativa da rejeição:");
-        if (!justification?.trim()) return;
-        try {
-            await api(`/api/schedules/${encodeURIComponent(schedule.id)}/reject?actor=${encodeURIComponent(actor)}&justification=${encodeURIComponent(justification.trim())}`, { method: "POST" });
-            setFeedback("Rejeição registrada.");
-            await loadSchedules();
-        } catch (error) { setFeedback(error.message, true); }
-    }
-
-    async function loadAdjustments() {
-        const list = root.querySelector("[data-adjustment-list]");
-        list.replaceChildren();
-        let requests = [];
-        for (const schedule of state.schedules) {
+        async function showVersions(schedule) {
+            const card = root.querySelector(`[data-schedule-id="${CSS.escape(schedule.id)}"]`);
+            const output = card?.querySelector(".planning-detail-output");
+            if (!output) return;
             try {
-                const items = await api(`/api/schedules/${encodeURIComponent(schedule.id)}/adjustment-requests`);
-                requests.push(...items.filter((item) => item.status === "ABERTA").map((item) => ({ ...item, schedule })));
-            } catch { /* A grade pode ter sido removida durante a atualização da tela. */ }
+                const versions = await api(`/api/schedules/${encodeURIComponent(schedule.id)}/versions`);
+                output.hidden = false;
+                output.replaceChildren();
+                const select = document.createElement("select");
+                select.setAttribute("aria-label", "Versão de origem");
+                const selectTo = document.createElement("select");
+                selectTo.setAttribute("aria-label", "Versão de destino");
+                versions.forEach((version) => {
+                    option(select, version.number, `v${version.number} · ${version.createdBy || "sistema"}`);
+                    option(selectTo, version.number, `v${version.number} · ${version.createdBy || "sistema"}`);
+                });
+                select.value = String(Math.max(1, schedule.versionNumber - 1));
+                selectTo.value = String(schedule.versionNumber);
+                const compare = makeButton("Comparar", "bi-arrow-left-right", async () => {
+                    try {
+                        const changes = await api(`/api/schedules/${encodeURIComponent(schedule.id)}/versions/compare?fromVersion=${select.value}&toVersion=${selectTo.value}`);
+                        output.dataset.comparison = JSON.stringify(changes, null, 2);
+                        renderDetailOutput(output);
+                    } catch (error) { setFeedback(error.message, true); }
+                });
+                const versionsText = document.createElement("p");
+                versionsText.textContent = versions.map((version) => `v${version.number}: ${version.activities.length} atividades`).join(" · ");
+                output.append(versionsText, select, selectTo, compare);
+            } catch (error) { setFeedback(error.message, true); }
         }
-        if (!requests.length) {
-            list.append(emptyMessage("Nenhuma solicitação de ajuste aberta."));
-            return;
-        }
-        requests.forEach((request) => {
-            const item = document.createElement("article");
-            item.className = "planning-request-item";
-            const text = document.createElement("div");
-            const title = document.createElement("strong");
-            title.textContent = request.schedule.name;
-            const description = document.createElement("p");
-            description.textContent = `${request.requester}: ${request.description}`;
-            text.append(title, description);
-            const respond = makeButton("Aceitar", "bi-check2", () => respondToAdjustment(request, "ACEITA"), "primary-button");
-            const reject = makeButton("Rejeitar", "bi-x", () => respondToAdjustment(request, "REJEITADA"));
-            item.append(text, respond, reject);
-            list.append(item);
-        });
-    }
 
-    async function respondToAdjustment(request, decision) {
-                const response = window.prompt("Resposta para o solicitante:");
-                if (!response?.trim()) return;
+        async function showAudit(schedule) {
+            const card = root.querySelector(`[data-schedule-id="${CSS.escape(schedule.id)}"]`);
+            const output = card?.querySelector(".planning-detail-output");
+            if (!output) return;
+            try {
+                const events = await api(`/api/schedules/${encodeURIComponent(schedule.id)}/audit`);
+                output.dataset.comparison = JSON.stringify(events, null, 2);
+                output.hidden = false;
+                renderDetailOutput(output);
+            } catch (error) { setFeedback(error.message, true); }
+        }
+
+        function renderDetailOutput(output) {
+            const pre = document.createElement("code");
+            pre.textContent = output.dataset.comparison || "[]";
+            output.append(pre);
+        }
+
+        async function transition(schedule, action) {
+            try {
+                await api(`/api/schedules/${encodeURIComponent(schedule.id)}/${action}?actor=${encodeURIComponent(actor)}`, { method: "POST" });
+                setFeedback("Estado da grade atualizado.");
+                await loadSchedules();
+            } catch (error) { setFeedback(error.message, true); }
+        }
+
+        async function reject(schedule) {
+            const justification = window.prompt("Justificativa da rejeição:");
+            if (!justification?.trim()) return;
+            try {
+                await api(`/api/schedules/${encodeURIComponent(schedule.id)}/reject?actor=${encodeURIComponent(actor)}&justification=${encodeURIComponent(justification.trim())}`, { method: "POST" });
+                setFeedback("Rejeição registrada.");
+                await loadSchedules();
+            } catch (error) { setFeedback(error.message, true); }
+        }
+        let adjustmentLoadVersion = 0;
+        async function loadAdjustments() {
+            const loadVersion = ++adjustmentLoadVersion;
+            const list = root.querySelector("[data-adjustment-list]");
+            let requests = [];
+            for (const schedule of state.schedules) {
                 try {
-                    await api(`/api/schedules/${encodeURIComponent(request.schedule.id)}/adjustment-requests/${encodeURIComponent(request.id)}?actor=${encodeURIComponent(actor)}&decision=${decision}&response=${encodeURIComponent(response.trim())}`, { method: "PATCH" });
-                    setFeedback("Solicitação respondida.");
-                    await loadAdjustments();
-                } catch (error) { setFeedback(error.message, true); }
-    }
+                    const items = await api(`/api/schedules/${encodeURIComponent(schedule.id)}/adjustment-requests`);
+                    requests.push(...items.filter((item) => item.status === "ABERTA").map((item) => ({ ...item, schedule })));
+                } catch { /* A grade pode ter sido removida durante a atualização da tela. */ }
+            }
+            if (loadVersion !== adjustmentLoadVersion) return;
 
-    root.querySelectorAll("[data-planning-tab]").forEach((tab) => tab.addEventListener("click", () => {
-        root.querySelectorAll("[data-planning-tab]").forEach((item) => {
-            const active = item === tab;
-            item.classList.toggle("is-active", active);
-            item.setAttribute("aria-selected", String(active));
-        });
-        root.querySelectorAll("[data-planning-panel]").forEach((panel) => {
-            panel.hidden = panel.dataset.planningPanel !== tab.dataset.planningTab;
-        });
-        if (tab.dataset.planningTab === "review") loadAdjustments();
-    }));
-    root.querySelector("[data-schedule-period-filter]").addEventListener("change", renderSchedules);
-    root.querySelector("[data-refresh-schedules]").addEventListener("click", loadSchedules);
-    root.querySelector("[data-run-report]").addEventListener("click", runReport);
-    root.querySelector("[data-export-report]").addEventListener("click", exportReport);
-
-    async function runReport() {
-        const filters = {
-            academicPeriodId: root.querySelector("[data-report-period]").value,
-            classId: root.querySelector("[data-report-class]").value,
-            teacherId: root.querySelector("[data-report-teacher]").value,
-            roomResourceId: root.querySelector("[data-report-room]").value,
-            status: root.querySelector("[data-report-status]").value
-        };
-        const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value));
-        try {
-            state.report = await api(`/api/schedule-reports?${query}`);
-            const output = root.querySelector("[data-report-output]");
-            output.textContent = `${state.report.length} grade(s) no resultado.`;
-            root.querySelector("[data-export-report]").disabled = !state.report.length;
-        } catch (error) { setFeedback(error.message, true); }
-    }
-
-    function exportReport() {
-        const blob = new Blob([JSON.stringify(state.report, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "relatorio-de-grades.json";
-        link.click();
-        URL.revokeObjectURL(url);
-    }
-
-    (async () => {
-        try {
-            await loadCatalogs();
-            await loadSchedules();
-            setFeedback("Planejamento carregado.");
-        } catch (error) {
-            setFeedback(`Não foi possível carregar o planejamento: ${error.message}`, true);
+            list.replaceChildren();
+            if (!requests.length) {
+                list.append(emptyMessage("Nenhuma solicitação de ajuste aberta."));
+                return;
+            }
+            requests.forEach((request) => {
+                const item = document.createElement("article");
+                item.className = "planning-request-item";
+                const text = document.createElement("div");
+                const title = document.createElement("strong");
+                title.textContent = request.schedule.name;
+                const description = document.createElement("p");
+                description.textContent = `${request.requester}: ${request.description}`;
+                text.append(title, description);
+                const respond = makeButton("Aceitar", "bi-check2", () => respondToAdjustment(request, "ACEITA"), "primary-button");
+                const reject = makeButton("Rejeitar", "bi-x", () => respondToAdjustment(request, "REJEITADA"));
+                item.append(text, respond, reject);
+                list.append(item);
+            });
         }
-    })();
-}
+
+        async function respondToAdjustment(request, decision) {
+            const response = window.prompt("Resposta para o solicitante:");
+            if (!response?.trim()) return;
+            try {
+                await api(`/api/schedules/${encodeURIComponent(request.schedule.id)}/adjustment-requests/${encodeURIComponent(request.id)}?actor=${encodeURIComponent(actor)}&decision=${decision}&response=${encodeURIComponent(response.trim())}`, { method: "PATCH" });
+                setFeedback("Solicitação respondida.");
+                await loadAdjustments();
+            } catch (error) { setFeedback(error.message, true); }
+        }
+
+        root.querySelectorAll("[data-planning-tab]").forEach((tab) => tab.addEventListener("click", () => {
+            root.querySelectorAll("[data-planning-tab]").forEach((item) => {
+                const active = item === tab;
+                item.classList.toggle("is-active", active);
+                item.setAttribute("aria-selected", String(active));
+            });
+            root.querySelectorAll("[data-planning-panel]").forEach((panel) => {
+                panel.hidden = panel.dataset.planningPanel !== tab.dataset.planningTab;
+            });
+            if (tab.dataset.planningTab === "review") loadAdjustments();
+        }));
+        root.querySelector("[data-schedule-period-filter]").addEventListener("change", renderSchedules);
+        root.querySelector("[data-refresh-schedules]").addEventListener("click", loadSchedules);
+        root.querySelector("[data-run-report]").addEventListener("click", runReport);
+        root.querySelector("[data-export-report]").addEventListener("click", exportReport);
+
+        async function runReport() {
+            const filters = {
+                academicPeriodId: root.querySelector("[data-report-period]").value,
+                classId: root.querySelector("[data-report-class]").value,
+                teacherId: root.querySelector("[data-report-teacher]").value,
+                roomResourceId: root.querySelector("[data-report-room]").value,
+                status: root.querySelector("[data-report-status]").value
+            };
+            const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value));
+            try {
+                state.report = await api(`/api/schedule-reports?${query}`);
+                const output = root.querySelector("[data-report-output]");
+                output.textContent = `${state.report.length} grade(s) no resultado.`;
+                root.querySelector("[data-export-report]").disabled = !state.report.length;
+            } catch (error) { setFeedback(error.message, true); }
+        }
+
+        function exportReport() {
+            const blob = new Blob([JSON.stringify(state.report, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "relatorio-de-grades.json";
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        (async () => {
+            try {
+                await loadCatalogs();
+                await loadSchedules();
+                setFeedback("Planejamento carregado.");
+            } catch (error) {
+                setFeedback(`Não foi possível carregar o planejamento: ${error.message}`, true);
+            }
+        })();
+    }

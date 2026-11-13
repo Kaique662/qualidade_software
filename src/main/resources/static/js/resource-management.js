@@ -12,6 +12,29 @@ function initializeResourceManagement(root) {
     const blockList = root.querySelector("[data-resource-block-list]");
     let resources = [];
     let impactPreview = null;
+    let courses = [];
+    let classes = [];
+    let subjects = [];
+
+    async function loadAcademicCatalogs() {
+        try {
+            [courses, classes, subjects] = await Promise.all([
+                api("/api/courses"),
+                api("/api/classes"),
+                api("/api/subjects")
+            ]);
+        } catch (error) {
+            console.error("Erro ao carregar dados acadêmicos:", error);
+        }
+    }
+
+    function getLabel(items, id) {
+        const item = items.find(value => value.id === id);
+
+        if (!item) return id || "Não informado";
+
+        return item.name || item.code || id;
+    }
 
     async function api(path, options = {}) {
         const headers = { ...(options.body ? { "Content-Type": "application/json" } : {}), ...options.headers };
@@ -176,7 +199,14 @@ function initializeResourceManagement(root) {
                         const interval = new URLSearchParams({ startsAt: block.startsAt, endsAt: block.endsAt });
                         const affected = await api(`/api/resources/${encodeURIComponent(block.resourceId)}/block-impact?${interval}`);
                         const impactText = affected.length
-                            ? affected.map((entry) => `${entry.courseId} · ${entry.classId} · ${entry.subjectId} · ${entry.startsAt.replace("T", " ")}–${entry.endsAt.slice(11, 16)}`).join("\n")
+                            ? affected.map((entry, index) => [
+                                `Aula ${index + 1}`,
+                                `Curso: ${getLabel(courses, entry.courseId)}`,
+                                `Turma: ${getLabel(classes, entry.classId)}`,
+                                `Disciplina: ${getLabel(subjects, entry.subjectId)}`,
+                                `ID da aula: ${entry.id ?? entry.allocationId ?? "Não informado"}`,
+                                `Horário: ${entry.startsAt.replace("T", " ")} até ${entry.endsAt.replace("T", " ")}`
+                            ].join("\n")).join("\n\n")
                             : "Nenhuma atividade será afetada.";
                         if (!window.confirm(`Atividades afetadas (${affected.length}):\n${impactText}\n\nConfirmar bloqueio?`)) return;
                         await api(`/api/resource-blocks/${encodeURIComponent(block.id)}/confirm?actor=${encodeURIComponent(actor)}`, { method: "POST" });
@@ -220,23 +250,145 @@ function initializeResourceManagement(root) {
 
     function renderAllocations(container, entries) {
         container.replaceChildren();
+        if (entries.length > 0) {
+            const warning = document.createElement("div");
+
+            warning.className = "manager-feedback";
+            warning.setAttribute("role", "status");
+
+            warning.textContent =
+                `Atenção: esta manutenção afetará ${entries.length} ` +
+                `atividade(s) já agendada(s).`;
+
+            container.append(warning);
+        }
         if (!entries.length) {
             setResult(container, "Nenhuma atividade impactada neste intervalo.");
             return;
         }
-        entries.forEach((entry) => {
+
+        entries.forEach((entry, index) => {
             const row = document.createElement("article");
             row.className = "manager-allocation-item";
+
             const name = document.createElement("strong");
-            name.textContent = `${entry.courseId} · ${entry.classId} · ${entry.subjectId}`;
+            name.textContent = `Aula ${index + 1}`;
+
+            const details = document.createElement("p");
+            details.textContent = [
+                `Curso: ${getLabel(courses, entry.courseId)}`,
+                `Turma: ${getLabel(classes, entry.classId)}`,
+                `Disciplina: ${getLabel(subjects, entry.subjectId)}`,
+                `ID da aula: ${entry.allocationId ?? entry.id ?? "Não informado"}`
+            ].join("\n");
+
+            details.style.whiteSpace = "pre-line";
+
             const interval = document.createElement("p");
-            interval.textContent = `${entry.startsAt.replace("T", " ")}–${entry.endsAt.slice(11, 16)} · quantidade ${entry.quantity}`;
-            row.append(name, interval);
+            interval.textContent =
+                `Horário: ${entry.startsAt.replace("T", " ")} ` +
+                `até ${entry.endsAt.replace("T", " ")} · ` +
+                `Quantidade: ${entry.quantity}`;
+
+            row.append(name, details, interval);
+
+
+            if (
+                container === root.querySelector("[data-block-impact-results]") &&
+                entry.resourceType === "ROOM"
+            ) {
+                const roomSelect = document.createElement("select");
+                const button = actionButton(
+                    "Solicitar remanejamento",
+                    "bi-arrow-left-right",
+                    async () => {
+                        if (!roomSelect.value) {
+                            alert("Selecione outra sala.");
+                            return;
+                        }
+
+                        button.disabled = true;
+
+                        try {
+                            const activityId = entry.allocationId.slice(
+                                entry.scheduleId.length + 1
+                            );
+
+                            const room = resources.find(
+                                item => item.id === roomSelect.value
+                            );
+
+                            const description =
+                                `Remanejamento por manutenção. ` +
+                                `Nova sala sugerida: ${room.code} - ${room.name} ` +
+                                `(ID: ${room.id}).`;
+
+                            await api(
+                                `/api/schedules/${encodeURIComponent(
+                                    entry.scheduleId
+                                )}/adjustment-requests`,
+                                {
+                                    method: "POST",
+                                    body: JSON.stringify({
+                                        requester: "gestora",
+                                        activityId,
+                                        description
+                                    })
+                                }
+                            );
+
+                            alert("Solicitação enviada para revisão.");
+                        } catch (error) {
+                            alert(error.message);
+                        } finally {
+                            button.disabled = false;
+                        }
+                    }
+                );
+
+                button.disabled = true;
+
+                const query = new URLSearchParams({
+                    type: "ROOM",
+                    startsAt: entry.startsAt,
+                    endsAt: entry.endsAt
+                });
+
+                api(`/api/resources?${query}`)
+                    .then(rooms => {
+                        roomSelect.replaceChildren();
+
+                        const placeholder = document.createElement("option");
+                        placeholder.value = "";
+                        placeholder.textContent = "Selecione outra sala";
+                        roomSelect.append(placeholder);
+
+                        rooms
+                            .filter(room => room.id !== entry.resourceId)
+                            .forEach(room => {
+                                const option = document.createElement("option");
+                                option.value = room.id;
+                                option.textContent =
+                                    `${room.code} - ${room.name}`;
+                                roomSelect.append(option);
+                            });
+
+                        button.disabled = roomSelect.options.length <= 1;
+                    })
+                    .catch(error => {
+                        setResult(container, error.message, true);
+                    });
+
+                row.append(roomSelect, button);
+            }
+
             container.append(row);
+
         });
     }
 
     root.querySelector("[data-refresh-blocks]").addEventListener("click", loadBlocks);
+    loadAcademicCatalogs();
     loadResources();
     loadBlocks();
 }

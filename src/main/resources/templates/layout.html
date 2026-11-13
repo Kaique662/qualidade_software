@@ -53,9 +53,35 @@
                 <form class="topbar-actions" th:action="@{/logout}" method="post"><span class="topbar-note"><span class="status-pip"></span> Sessão ativa</span><button class="icon-button" type="submit" aria-label="Sair" title="Sair"><i class="bi bi-box-arrow-right"></i></button></form>
             </header>
             <div class="page-content" th:insert="${content}"></div>
-            <footer class="app-footer"><span>Núcleo <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2026</span></span><span>Gestão simples, dados organizados.</span></footer>
+            
+<footer class="app-footer">
+    <div class="footer-left">
+        <span>
+            Núcleo
+            <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">
+                2026
+            </span>
+        </span>
+
+        <button type="button"
+                class="footer-account-button"
+                data-open-teacher-account
+                th:if="${portalUser.role.name() == 'PROFESSOR'}"
+                aria-controls="teacher-account"
+                aria-expanded="false">
+            <i class="bi bi-gear"></i>
+            Minha conta
+        </button>
+    </div>
+
+    <span>Gestão simples, dados organizados.</span>
+</footer>
+
         </main>
     </div>
-    <script th:src="@{/js/app.js}" defer></script>
+<script th:src="@{/js/app.js}" defer></script>
+<script th:src="@{/js/academic-planning.js}" defer></script>
+<script th:src="@{/js/teacher-journey.js}" defer></script>
+<script th:src="@{/js/resource-management.js}" defer></script>
 </body>
 </html>

@@ -74,7 +74,11 @@
         <p class="teacher-link-warning" data-teacher-link-warning hidden>Vincule este login a um cadastro docente por `APP_PROFESSOR_TEACHER_ID` para carregar seus horários.</p>
     </section>
 
-    <section class="portal-section account-settings" aria-labelledby="account-settings-title">
+    <section
+    class="portal-section account-settings"
+    id="teacher-account"
+    aria-labelledby="account-settings-title"
+    hidden>
         <div class="section-heading"><div><p class="eyebrow">SEGURANÇA</p><h2 id="account-settings-title">Minha conta</h2></div></div>
         <div class="teacher-form">
             <p class="teacher-feedback" role="status" th:if="${param.passwordChanged}">Senha alterada com sucesso.</p>

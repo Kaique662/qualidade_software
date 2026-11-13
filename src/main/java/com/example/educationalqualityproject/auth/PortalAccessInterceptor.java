@@ -49,11 +49,25 @@ public class PortalAccessInterceptor implements HandlerInterceptor {
     private boolean isAllowed(String path, HttpServletRequest request, PortalUser user) {
         PortalUser.Role role = user.role();
         String method = request.getMethod();
+
+        // Permite à Gestora consultar cursos, turmas e disciplinas
+        if ("GET".equals(method) &&
+                (path.equals("/api/courses") ||
+                        path.equals("/api/classes") ||
+                        path.equals("/api/subjects"))) {
+
+            return role == PortalUser.Role.ADMIN ||
+                    role == PortalUser.Role.RESOURCE_MANAGER;
+        }
+
+        // Áreas administrativas continuam exclusivas do ADMIN
         if (path.equals("/admin") || path.startsWith("/admin/")
-            || path.startsWith("/students/") || path.equals("/students")
+                || path.startsWith("/students/") || path.equals("/students")
                 || path.startsWith("/teachers/") || path.equals("/teachers")) {
+
             return role == PortalUser.Role.ADMIN;
         }
+
         if (path.equals("/professor") || path.startsWith("/professor/")) {
             return role == PortalUser.Role.PROFESSOR;
         }
@@ -79,14 +93,24 @@ public class PortalAccessInterceptor implements HandlerInterceptor {
                     || role == PortalUser.Role.PROFESSOR && matchesTeacherPath(path, user.teacherId());
         }
         if (path.startsWith("/api/schedules/") && path.endsWith("/adjustment-requests")) {
+
+            if (path.startsWith("/api/schedules/") &&
+                    path.endsWith("/adjustment-requests")) {
+
+                return role == PortalUser.Role.ADMIN
+                        || role == PortalUser.Role.RESOURCE_MANAGER
+                        || (role == PortalUser.Role.PROFESSOR
+                                && hasTeacherLink(user));
+            }
+
             return role == PortalUser.Role.ADMIN
                     || role == PortalUser.Role.PROFESSOR && hasTeacherLink(user);
         }
         if (path.startsWith("/api/schedules/") && path.contains("/notifications")) {
             return role == PortalUser.Role.ADMIN || role == PortalUser.Role.RESOURCE_MANAGER
                     || role == PortalUser.Role.PROFESSOR
-                    && user.teacherId() != null
-                    && user.teacherId().equals(request.getParameter("recipient"));
+                            && user.teacherId() != null
+                            && user.teacherId().equals(request.getParameter("recipient"));
         }
         if (path.startsWith("/api/schedules/") && method.equals("GET")) {
             return role == PortalUser.Role.ADMIN || role == PortalUser.Role.RESOURCE_MANAGER;

@@ -4,6 +4,48 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initializeTeacherJourney(root) {
+
+    const accountSection = root.querySelector("#teacher-account");
+    const accountButton = document.querySelector(
+        "[data-open-teacher-account]"
+    );
+
+    if (accountSection && accountButton) {
+        function showAccount(open) {
+            accountSection.hidden = !open;
+            accountButton.setAttribute(
+                "aria-expanded",
+                String(open)
+            );
+
+            if (open) {
+                accountSection.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+            }
+        }
+
+        accountButton.addEventListener("click", () => {
+            showAccount(accountSection.hidden);
+        });
+
+        root.querySelectorAll("[data-teacher-tab]").forEach(tab => {
+            tab.addEventListener("click", () => {
+                showAccount(false);
+            });
+        });
+
+        const params = new URLSearchParams(window.location.search);
+
+        if (
+            params.has("passwordChanged") ||
+            params.has("passwordError")
+        ) {
+            showAccount(true);
+        }
+    }
+
     const teacherId = root.dataset.teacherId;
     const warning = root.querySelector("[data-teacher-link-warning]");
     const feedback = root.querySelector("[data-availability-feedback]");
@@ -310,10 +352,10 @@ function initializeTeacherJourney(root) {
         });
         if (!requests.length) list.append(emptyMessage("Nenhuma solicitação registrada."));
     }
-
+    let notificationsLoadVersion = 0;
     async function loadNotifications() {
+        const loadVersion = ++notificationsLoadVersion;
         const list = root.querySelector("[data-teacher-notifications]");
-        list.replaceChildren();
         const notifications = [];
         for (const schedule of state.schedules) {
             try {
@@ -321,6 +363,8 @@ function initializeTeacherJourney(root) {
                 notifications.push(...items.map((item) => ({ ...item, scheduleId: schedule.scheduleId })));
             } catch { /* Notification may be removed with its schedule. */ }
         }
+        if (loadVersion !== notificationsLoadVersion) return;
+        list.replaceChildren();
         notifications.sort((left, right) => right.createdAt.localeCompare(left.createdAt));
         notifications.forEach((notification) => {
             const item = document.createElement("article");

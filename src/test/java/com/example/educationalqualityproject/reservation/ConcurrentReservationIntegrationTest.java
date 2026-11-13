@@ -13,6 +13,8 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -40,7 +42,7 @@ class ConcurrentReservationIntegrationTest {
             .withPassword("testpass");
 
     private JdbcTemplate jdbcTemplate;
-        private DriverManagerDataSource dataSource;
+    private DriverManagerDataSource dataSource;
 
     @BeforeEach
     void setUp() {
@@ -52,27 +54,27 @@ class ConcurrentReservationIntegrationTest {
         jdbcTemplate = new JdbcTemplate(dataSource);
         Flyway.configure().dataSource(dataSource).load().migrate();
         jdbcTemplate.execute("TRUNCATE TABLE reservation_audit_event, reservation, room_reservation, " +
-            "teacher_agenda, material_reservation RESTART IDENTITY CASCADE");
+                "teacher_agenda, material_reservation RESTART IDENTITY CASCADE");
     }
 
     @RepeatedTest(5)
-    void roomReservation_sameSlot_concurrentRequests_shouldAcceptExactlyOneAndRejectNineteenWithConflict() throws Exception {
+    void roomReservation_sameSlot_concurrentRequests_shouldAcceptExactlyOneAndRejectNineteenWithConflict()
+            throws Exception {
         assertConcurrentInsertOutcome(
                 "room_reservation",
                 "resource_id",
                 "room-101",
-                "ROOM"
-        );
+                "ROOM");
     }
 
     @RepeatedTest(5)
-    void professorAgenda_sameSlot_concurrentRequests_shouldAcceptExactlyOneAndRejectNineteenWithConflict() throws Exception {
+    void professorAgenda_sameSlot_concurrentRequests_shouldAcceptExactlyOneAndRejectNineteenWithConflict()
+            throws Exception {
         assertConcurrentInsertOutcome(
                 "teacher_agenda",
                 "professor_id",
                 "prof-42",
-                "PROFESSOR"
-        );
+                "PROFESSOR");
     }
 
     @Test
@@ -121,13 +123,23 @@ class ConcurrentReservationIntegrationTest {
 
         assertEquals(1, accepted.get());
         assertEquals(1, rejected.get());
+
         Integer rows = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM material_reservation WHERE resource_id = ? AND status = 'SOLICITADA'",
-                Integer.class, "projector-1");
+                "SELECT COUNT(*) FROM material_reservation "
+                        + "WHERE resource_id = ? "
+                        + "AND lower(time_range) = ? "
+                        + "AND upper(time_range) = ?",
+                Integer.class,
+                "projector-1",
+                OffsetDateTime.ofInstant(START, ZoneOffset.UTC),
+                OffsetDateTime.ofInstant(END, ZoneOffset.UTC));
+
         assertEquals(1, rows);
+
     }
 
-    private void assertConcurrentInsertOutcome(String tableName, String keyColumn, String keyValue, String scenario) throws Exception {
+    private void assertConcurrentInsertOutcome(String tableName, String keyColumn, String keyValue, String scenario)
+            throws Exception {
         final int concurrentRequests = 20;
         ExecutorService executor = Executors.newFixedThreadPool(concurrentRequests);
         CountDownLatch ready = new CountDownLatch(concurrentRequests);
@@ -141,13 +153,15 @@ class ConcurrentReservationIntegrationTest {
                 ready.countDown();
                 start.await();
                 try {
+
                     jdbcTemplate.update(
-                            "INSERT INTO " + tableName + " (" + keyColumn + ", time_range, status) VALUES (?, tstzrange(?, ?, '[)'), ?)",
+                            "INSERT INTO " + tableName + " (" + keyColumn
+                                    + ", time_range, status) VALUES (?, tstzrange(?, ?, '[)'), ?)",
                             keyValue,
-                            START,
-                            END,
-                            "APROVADA"
-                    );
+                            OffsetDateTime.ofInstant(START, ZoneOffset.UTC),
+                            OffsetDateTime.ofInstant(END, ZoneOffset.UTC),
+                            "APROVADA");
+
                     accepted.incrementAndGet();
                     return 201;
                 } catch (Exception ex) {
@@ -183,23 +197,33 @@ class ConcurrentReservationIntegrationTest {
         assertEquals(19, rejected.get(), "Caso " + scenario + ": contagem de recusas não bate");
 
         Integer rows = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + tableName + " WHERE " + keyColumn + " = ? AND lower(time_range) = ? AND upper(time_range) = ?",
+                "SELECT COUNT(*) FROM " + tableName + " WHERE " + keyColumn
+                        + " = ? AND lower(time_range) = ? AND upper(time_range) = ?",
                 Integer.class,
                 keyValue,
-                START,
-                END
-        );
+                OffsetDateTime.ofInstant(START, ZoneOffset.UTC),
+                OffsetDateTime.ofInstant(END, ZoneOffset.UTC));
+
         assertEquals(1, rows, "Caso " + scenario + ": deveria existir uma única linha para o recurso/intervalo");
     }
 
     private boolean isExclusionConflict(Throwable throwable) {
         Throwable current = throwable;
+
         while (current != null) {
-            if (current instanceof SQLException sqlException && "23P01".equals(sqlException.getSQLState())) {
-                return true;
+            if (current instanceof SQLException sqlException) {
+                String sqlState = sqlException.getSQLState();
+
+                if ("23P01".equals(sqlState) ||
+                        "40P01".equals(sqlState)) {
+                    return true;
+                }
             }
+
             current = current.getCause();
         }
+
         return false;
     }
+
 }

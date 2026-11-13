@@ -87,7 +87,7 @@ Os nomes de usuário de demonstração são `admin`, `professor` e `gestora`. As
 ```bash
 export APP_ADMIN_PASSWORD='admin2'
 export APP_PROFESSOR_PASSWORD='prof2'
-export APP_MANAGER_PASSWORD='mama2'
+export APP_MANAGER_PASSWORD='gest2'
 export APP_PROFESSOR_TEACHER_ID='id-do-professor-no-mongodb'
 ./mvnw spring-boot:run
 ```

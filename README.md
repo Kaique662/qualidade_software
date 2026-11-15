@@ -95,7 +95,7 @@ O comando `java -version` deverá apresentar **Java 17**. As variáveis definida
 **Modelo de URI** (sem credenciais reais):
 
 ```text
-mongodb+srv://USUARIO:SENHA@SEU_CLUSTER.mongodb.net/qualidade_software?retryWrites=true&w=majority
+mongodb+srv://Teste:123456d7asd234a567ADSD345627312DSAD@projetin.hy8qs1c.mongodb.net/qualidade_software?retryWrites=true&w=majority
 ```
 
 No terminal, cole este bloco:

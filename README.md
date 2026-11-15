@@ -1,199 +1,421 @@
-# Projeto de Qualidade Educacional
+# 🎓 Projeto de Qualidade Educacional
 
-Este é um projeto educacional em Java usando Spring Boot e Maven para ensinar conceitos de qualidade aos alunos. O projeto implementa um sistema simples de cadastro de alunos e professores com uma interface web básica.
+**Sistema web de gestão acadêmica e recursos educacionais**, desenvolvido em Java com Spring Boot. Reúne cadastros, planejamento de aulas, revisão de grades, disponibilidade docente, manutenção de salas e materiais, além de uma API REST para integração e testes de qualidade de software.
 
-## Funcionalidades
+> **Para começar rapidamente:** abra o projeto no GitHub Codespaces, configure o **Java 17** e a conexão com o **MongoDB Atlas** e execute `./mvnw spring-boot:run`.
 
-- Cadastro e gerenciamento de alunos
-- Cadastro e gerenciamento de professores
-- Interface web simples usando Thymeleaf e Bootstrap
-- Banco de dados MongoDB para armazenamento de documentos
+## 📑 Índice
 
-## Tecnologias Utilizadas
+- [Visão geral](#-visão-geral)
+- [Tecnologias](#-tecnologias)
+- [Início rápido no GitHub Codespaces](#-início-rápido-no-github-codespaces)
+- [Acesso para avaliação do professor](#-acesso-para-avaliação-do-professor)
+- [Acesso ao sistema e perfis](#-acesso-ao-sistema-e-perfis)
+- [Execução local e comandos úteis](#-execução-local-e-comandos-úteis)
+- [Testes automatizados](#-testes-automatizados)
+- [Documentação da API](#-documentação-da-api)
+- [Estrutura do projeto](#-estrutura-do-projeto)
+- [Problemas frequentes](#-problemas-frequentes)
+- [Limitações e melhorias futuras](#-limitações-e-melhorias-futuras)
 
-- Java 17
-- Spring Boot 3.2.0
-- Maven
-- Spring Data MongoDB
-- Thymeleaf
-- Bootstrap
-- Banco de Dados MongoDB
+## ✨ Visão geral
 
-## Conexão ao Banco de Dados
+| Área | Funcionalidades |
+| --- | --- |
+| **Cadastros** | Gerenciamento de estudantes e professores |
+| **Planejamento acadêmico** | Períodos letivos, cursos, turmas, disciplinas, grades e atividades |
+| **Fluxo de grades** | Rascunhos, versões, comparação, revisão, aprovação, publicação e auditoria |
+| **Professores** | Disponibilidade, agenda, solicitações de ajuste e consulta de notificações |
+| **Gestão de recursos** | Salas, materiais, disponibilidade, bloqueios e identificação de aulas impactadas |
+| **Remanejamento** | Solicitação de troca de sala para revisão; **a aprovação não altera a sala automaticamente** |
+| **Reservas opcionais** | API de reservas com PostgreSQL, Flyway e regras de concorrência |
 
-Configure `SPRING_DATA_MONGODB_URI` (ou `MONGODB_URI`) no ambiente. Sem URI configurada, a aplicação tenta `mongodb://localhost:27017/qualidade_software`. Não versionamos credenciais nem usamos um serviço remoto implícito.
+A interface utiliza **Thymeleaf** e **Bootstrap**. Os dados acadêmicos são armazenados no **MongoDB**. O módulo adicional de reservas, quando habilitado, utiliza **PostgreSQL**.
 
-## Começando
+## 🛠 Tecnologias
 
-### Pré-requisitos
+| Camada | Tecnologia |
+| --- | --- |
+| Linguagem | Java 17 |
+| Backend | Spring Boot 3.2.0 |
+| Build | Maven / Maven Wrapper (`mvnw`) |
+| Persistência principal | Spring Data MongoDB / MongoDB Atlas |
+| Interface web | Thymeleaf e Bootstrap |
+| Reservas opcionais | PostgreSQL e Flyway |
+| Testes de integração | JUnit, Testcontainers e Docker |
 
-- Java 17 ou superior
-- Maven 3.6.0 ou superior
+## 🚀 Início rápido no GitHub Codespaces
 
-### Instalação do Maven
+Este roteiro é recomendado para **quem acabou de criar um Codespace ou está acessando o projeto por outra conta**.
 
-#### No Windows:
-1. Baixe o Maven do site oficial: https://maven.apache.org/download.cgi
-2. Extraia o arquivo ZIP para um diretório como `C:\apache-maven-3.9.5`
-3. Adicione a variável de ambiente `MAVEN_HOME` apontando para o diretório do Maven
-4. Adicione `%MAVEN_HOME%\bin` ao seu PATH
-5. Verifique a instalação com o comando:
-```cmd
-mvn -version
+### 1. Abra o repositório
+
+1. Acesse **[Kaique662/qualidade_software](https://github.com/Kaique662/qualidade_software)**.
+2. Clique em **Code → Codespaces → Create codespace on main**.
+3. Aguarde a abertura do VS Code e abra o terminal.
+4. Confira a branch atual:
+
+   ```bash
+   git branch --show-current
+   ```
+
+   Se as alterações necessárias estiverem na branch `ci/github-actions-maven-verify` e ela estiver disponível no remoto, use:
+
+   ```bash
+   git fetch origin
+   git switch ci/github-actions-maven-verify
+   ```
+
+> **Atenção:** um Codespace novo só terá as alterações que já foram enviadas ao repositório remoto. Arquivos não commitados em outro Codespace não são transferidos automaticamente.
+
+### 2. Instale e selecione o Java 17
+
+Cole este bloco inteiro no terminal:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y openjdk-17-jdk
+
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export PATH="$JAVA_HOME/bin:$PATH"
+
+java -version
 ```
 
-#### No Linux (Ubuntu/Debian):
-```bash
-sudo apt update
-sudo apt install maven
+O comando `java -version` deverá apresentar **Java 17**. As variáveis definidas com `export` valem para a sessão atual do terminal.
+
+### 3. Configure o MongoDB Atlas
+
+1. Acesse **[MongoDB Atlas](https://cloud.mongodb.com/)**.
+2. Abra o projeto e selecione o cluster correspondente.
+3. Clique em **Connect → Drivers** e copie a URI de conexão.
+4. Substitua o usuário e a senha pelos dados do **Database Access**.
+5. Especifique o banco `qualidade_software` após `.net/`.
+
+**Modelo de URI** (sem credenciais reais):
+
+```text
+mongodb+srv://USUARIO:SENHA@SEU_CLUSTER.mongodb.net/qualidade_software?retryWrites=true&w=majority
 ```
 
-#### No Linux (CentOS/RHEL/Fedora):
+No terminal, cole este bloco:
+
 ```bash
-sudo yum install maven
-# ou para Fedora:
-sudo dnf install maven
+read -r -s -p "Cole a URI completa do MongoDB Atlas: " MONGODB_URI
+echo
+export MONGODB_URI
+export SPRING_DATA_MONGODB_URI="$MONGODB_URI"
 ```
 
-### Executando a Aplicação
+Quando aparecer a solicitação, cole **apenas a URI completa**, sem aspas, e pressione **Enter**. A senha não será mostrada na tela.
 
-1. Clone o repositório
-2. Navegue até o diretório do projeto
-3. Execute a aplicação usando Maven:
+> 🔒 **Segurança:** nunca inclua uma URI com senha no README, no código, em commits ou em mensagens públicas. Para uso recorrente, configure `MONGODB_URI` em **GitHub → Settings → Codespaces → Secrets**, autorize o repositório e reinicie o ambiente. O valor também pode ser utilizado como `SPRING_DATA_MONGODB_URI`. Se a senha tiver caracteres especiais, aplique a codificação adequada para URIs.
+
+**Verifique as variáveis sem exibir credenciais:**
 
 ```bash
+python3 - <<'PY'
+import os
+uri = os.environ.get("SPRING_DATA_MONGODB_URI", "")
+print("URI configurada:", bool(uri))
+print("Formato válido:", uri.startswith(("mongodb://", "mongodb+srv://")))
+print("Banco informado:", "/qualidade_software" in uri)
+PY
+```
+
+O esperado é `True` nas três verificações. Isso **não garante** que o cluster esteja acessível ou que as credenciais sejam válidas.
+
+Sem URI configurada, a aplicação pode tentar usar `mongodb://localhost:27017/qualidade_software` — endereço que não corresponde ao Atlas.
+
+### 4. Inicie a aplicação
+
+No mesmo terminal em que configurou as variáveis:
+
+```bash
+chmod +x mvnw
 ./mvnw spring-boot:run
 ```
 
-Ou construa e execute o JAR:
+Quando o servidor iniciar corretamente:
+
+- No **Codespaces**, abra **Ports → 8080 → Open in Browser**.
+- Em execução **local**, acesse `http://localhost:8080/login`.
+
+Para encerrar, pressione **Ctrl + C**. Se abrir outro terminal, talvez seja necessário configurar novamente `JAVA_HOME` e as variáveis do MongoDB.
+
+## 🧑‍🏫 Acesso para avaliação do professor
+
+Para executar e avaliar o sistema, o professor precisará de acesso ao repositório, de um Codespace com **Java 17** e da conexão com o **MongoDB Atlas**. O passo a passo completo está na seção [Início rápido no GitHub Codespaces](#-início-rápido-no-github-codespaces).
+
+**Informações do banco de dados:**
+
+| Campo | Valor |
+| --- | --- |
+| Serviço | MongoDB Atlas |
+| Cluster | `projetin.hy8qs1c.mongodb.net` |
+| Banco | `qualidade_software` |
+| Usuário de banco | `Admin` |
+| Senha | **Fornecida ao professor por canal privado** |
+
+> **Importante:** o usuário `Admin` acima pertence ao **MongoDB Atlas**; ele não é necessariamente o mesmo login `admin` da aplicação web. Por segurança, a senha do banco **não deve ser publicada no README nem em commits**. Para a avaliação, compartilhe a senha atual com o professor em mensagem privada, preferencialmente usando um usuário exclusivo, com permissões limitadas e acesso temporário. Se alguma senha já tiver sido exposta, altere-a no Atlas antes da entrega.
+
+Depois de receber a senha, o professor deve montar a URI no formato:
+
+```text
+mongodb+srv://Admin:SENHA_RECEBIDA@projetin.hy8qs1c.mongodb.net/qualidade_software?retryWrites=true&w=majority
+```
+
+No **terminal do Codespaces**, configure a URI sem exibir a senha nem gravá-la no histórico de comandos:
 
 ```bash
-./mvnw clean package
+read -r -s -p "Cole a URI completa do MongoDB Atlas: " MONGODB_URI
+echo
+export MONGODB_URI
+export SPRING_DATA_MONGODB_URI="$MONGODB_URI"
+./mvnw spring-boot:run
+```
+
+Se a conexão falhar, confira o usuário e a senha em **Database Access**, as permissões de rede em **Network Access** e se o cluster está ativo. Para testar sem iniciar a interface, use `./mvnw test`; os testes de integração com Testcontainers exigem Docker.
+
+---
+
+## 👥 Acesso ao sistema e perfis
+
+O projeto apresenta três perfis demonstrativos:
+
+| Perfil | Área de uso |
+| --- | --- |
+| **Administrador** (`admin`) | Cadastros e planejamento acadêmico |
+| **Professor** (`professor`) | Disponibilidade, agenda e solicitações |
+| **Gestora** (`gestora`) | Salas, materiais, manutenção e análise de impacto |
+
+Para definir **senhas próprias de demonstração** no ambiente local, configure antes de iniciar:
+
+```bash
+export APP_ADMIN_PASSWORD='SENHA_LOCAL_ADMIN'
+export APP_PROFESSOR_PASSWORD='SENHA_LOCAL_PROFESSOR'
+export APP_MANAGER_PASSWORD='SENHA_LOCAL_GESTORA'
+# Opcional: vincule o login demonstrativo a um professor existente.
+export APP_PROFESSOR_TEACHER_ID='ID_DO_PROFESSOR_NO_MONGODB'
+
+./mvnw spring-boot:run
+```
+
+Os nomes de usuário também podem ser alterados com `APP_ADMIN_USERNAME`, `APP_PROFESSOR_USERNAME` e `APP_MANAGER_USERNAME`.
+
+No painel administrativo, é possível cadastrar um professor com **e-mail e senha de pelo menos 8 caracteres**. A senha é armazenada como hash no MongoDB, e o professor pode alterá-la em **Minha conta**. Ao editar um professor, deixe a senha vazia para preservá-la. O cadastro vincula a conta à disponibilidade, à agenda e às solicitações.
+
+> **Observação:** os logins demonstrativos por variáveis de ambiente são destinados ao uso local. O controle de sessão e os acessos da interface não substituem um mecanismo de identidade e autorização adequado para produção.
+
+## 💻 Execução local e comandos úteis
+
+### Clonar e acessar o repositório
+
+```bash
+git clone https://github.com/Kaique662/qualidade_software.git
+cd qualidade_software
+```
+
+Após configurar Java e MongoDB, inicie com `./mvnw spring-boot:run` no Linux/macOS ou `mvnw.cmd spring-boot:run` no Windows.
+
+**Não é necessário instalar Maven separadamente quando o Maven Wrapper está disponível.** Caso prefira uma instalação global, consulte a [documentação oficial do Maven](https://maven.apache.org/install.html).
+
+### Comandos mais usados
+
+| Objetivo | Comando |
+| --- | --- |
+| Iniciar a aplicação | `./mvnw spring-boot:run` |
+| Compilar | `./mvnw compile` |
+| Executar testes | `./mvnw test` |
+| Criar o pacote | `./mvnw package` |
+| Limpar arquivos gerados | `./mvnw clean` |
+| Gerar JAR com build completo | `./mvnw clean package` |
+
+Para executar o JAR após o empacotamento:
+
+```bash
 java -jar target/educational-quality-project-0.0.1-SNAPSHOT.jar
 ```
 
-### Comandos úteis do Maven
+Rotas de interface utilizadas no projeto:
 
-- Para compilar o projeto: `mvn compile`
-- Para executar os testes: `mvn test`
-- Para empacotar o projeto: `mvn package`
-- Para limpar os arquivos gerados: `mvn clean`
-- Para executar a aplicação: `mvn spring-boot:run`
+- Login: `/login`
+- Cadastro de estudantes: `/students`
+- Cadastro de professores: `/teachers`
+- Planejamento acadêmico: `/admin/planning`
+- Área do professor: `/professor`
+- Gestão de recursos: `/gestora`
 
-### Acessando a Aplicação
+## 🧪 Testes automatizados
 
-Os nomes de usuário de demonstração são `admin`, `professor` e `gestora`. As senhas configuradas por variáveis de ambiente são apenas para ambiente local:
+Execute a suíte completa com:
 
 ```bash
-export APP_ADMIN_PASSWORD='admin2'
-export APP_PROFESSOR_PASSWORD='prof2'
-export APP_MANAGER_PASSWORD='gest2'
-export APP_PROFESSOR_TEACHER_ID='id-do-professor-no-mongodb'
-./mvnw spring-boot:run
+./mvnw test
 ```
 
-No painel administrativo, cadastre o professor com e-mail e senha (mínimo de 8 caracteres). Ele poderá entrar com o e-mail e a senha cadastrados; a senha é armazenada como hash no MongoDB. No painel do professor, use **Minha conta** para alterá-la. Ao editar o cadastro, deixe a senha vazia para mantê-la. A conta está vinculada automaticamente ao cadastro, habilitando disponibilidade, agenda e solicitações. Para logins de demonstração via ambiente, `APP_PROFESSOR_TEACHER_ID` ainda pode vincular o usuário configurado a um cadastro existente. Opcionalmente, os nomes de usuário podem ser definidos com `APP_ADMIN_USERNAME`, `APP_PROFESSOR_USERNAME` e `APP_MANAGER_USERNAME`. Este login local de demonstração não substitui um provedor de identidade para produção.
+Os testes de integração de reservas utilizam **PostgreSQL via Testcontainers**, que requer Docker funcionando no ambiente:
 
-Depois de iniciar a aplicação, acesse http://localhost:8080/login. O perfil é escolhido pelas credenciais usadas:
-- `admin`: painel com cadastro de estudantes e professores
-- `professor`: painel baseado na persona 02
-- `gestora`: painel de espaços e materiais da persona 03
+```bash
+docker info
+./mvnw -Dtest=ConcurrentReservationIntegrationTest test
+```
 
-As telas de estudantes e recursos precisam de uma conexão MongoDB disponível, configurada por `SPRING_DATA_MONGODB_URI` ou em `application.properties`.
+Um resultado bem-sucedido apresenta **`BUILD SUCCESS`** e **zero falhas e erros** nos testes. A quantidade total de testes pode variar conforme a versão do projeto.
 
-Rotas diretas das áreas:
-- Página de alunos: http://localhost:8080/students
-- Página de professores: http://localhost:8080/teachers
+## 📚 Documentação da API
 
-### API Endpoints
+A aplicação disponibiliza endpoints REST. As operações podem depender do perfil e das regras de acesso configuradas.
 
-A aplicação também disponibiliza endpoints RESTful para integração com outras aplicações:
+### Estudantes e professores
 
-#### Estudantes
-- `GET /api/students` - Listar todos os estudantes
-- `GET /api/students/{id}` - Obter detalhes de um estudante específico
-- `POST /api/students` - Criar um novo estudante
-- `PUT /api/students/{id}` - Atualizar informações de um estudante
-- `DELETE /api/students/{id}` - Excluir um estudante
+| Método | Endpoint | Finalidade |
+| --- | --- | --- |
+| `GET` | `/api/students` | Listar estudantes |
+| `GET` | `/api/students/{id}` | Consultar estudante |
+| `POST` | `/api/students` | Cadastrar estudante |
+| `PUT` | `/api/students/{id}` | Atualizar estudante |
+| `DELETE` | `/api/students/{id}` | Excluir estudante |
+| `GET` | `/api/teachers` | Listar professores |
+| `GET` | `/api/teachers/{id}` | Consultar professor |
+| `POST` | `/api/teachers` | Cadastrar professor |
+| `PUT` | `/api/teachers/{id}` | Atualizar professor |
+| `DELETE` | `/api/teachers/{id}` | Excluir professor |
 
-#### Professores
-- `GET /api/teachers` - Listar todos os professores
-- `GET /api/teachers/{id}` - Obter detalhes de um professor específico
-- `POST /api/teachers` - Criar um novo professor
-- `PUT /api/teachers/{id}` - Atualizar informações de um professor
-- `DELETE /api/teachers/{id}` - Excluir um professor
+### Planejamento acadêmico
 
-#### Planejamento acadêmico
-Os recursos abaixo oferecem operações `GET` (listar e consultar por ID), `POST` (criar), `PUT` (editar) e `DELETE` (excluir):
-- `/api/academic-periods` - Períodos letivos com datas de início e fim
-- `/api/courses` - Cursos
-- `/api/classes` - Turmas vinculadas a um curso e período letivo
-- `/api/subjects` - Disciplinas vinculadas a um curso
-- `/api/schedules` - Grades vinculadas a um período, com atividades e professores
+Os recursos abaixo possuem operações de consulta (`GET`), criação (`POST`), edição (`PUT`) e exclusão (`DELETE`), conforme as regras de cada recurso.
 
-Uma atividade de grade deve referenciar curso, turma, disciplina e ao menos um professor existente. As datas da atividade precisam estar dentro do período letivo e o fim deve ser posterior ao início. Ao criar ou editar uma grade, o sistema registra uma versão com cópia das atividades.
+| Recurso | Descrição |
+| --- | --- |
+| `/api/academic-periods` | Períodos letivos e datas de início e fim |
+| `/api/courses` | Cursos |
+| `/api/classes` | Turmas associadas a curso e período |
+| `/api/subjects` | Disciplinas associadas a curso |
+| `/api/schedules` | Grades, atividades e professores |
 
-#### Reservas de recursos
-O módulo de reservas usa PostgreSQL e é ativado somente quando `reservations.datasource.url` estiver configurada. O Flyway aplica as migrations em `src/main/resources/db/migration`; configure também `reservations.datasource.username` e `reservations.datasource.password` conforme o ambiente. Sem essa configuração, a API de reservas fica desativada e as demais telas/rotas continuam usando a configuração MongoDB existente.
+As atividades devem referenciar curso, turma, disciplina e pelo menos um professor existente. O horário precisa estar dentro do período letivo, com fim posterior ao início. Versões das atividades são registradas ao criar ou editar grades.
 
-- `POST /api/reservations` - Criar solicitação. Corpo: `resourceId`, `resourceType` (`ROOM`, `PROFESSOR` ou `MATERIAL`), `requesterId`, `startsAt`, `endsAt`, `quantity` (opcional, padrão 1) e `academicPeriodId` (obrigatório para professor). Use instantes ISO-8601 com offset, por exemplo `2026-03-01T10:00:00Z`.
-- `GET /api/reservations?resourceId=...&status=...&startsBefore=...&endsAfter=...` - Consultar reservas com filtros opcionais.
-- `GET /api/reservations/{id}` - Consultar uma reserva.
-- `POST /api/reservations/{id}/approve?actorId=...&role=RESPONSAVEL` - Aprovar; recurso restrito não pode ser aprovado pelo próprio solicitante.
-- `POST /api/reservations/{id}/start?actorId=...` e `POST /api/reservations/{id}/complete?actorId=...` - Avançar `APROVADA → EM_USO → CONCLUIDA`.
-- `GET /api/reservations/{id}/history` - Consultar eventos da reserva, incluindo solicitações e transições rejeitadas.
+### Versões, revisão e publicação de grades
 
-Salas e professores usam exclusão GiST no PostgreSQL; materiais usam lock transacional por recurso e cálculo do pico de quantidade em intervalos semiabertos, retornando `409` para conflito ou excesso. O fluxo valida também estado, bloqueios, buffers e agenda atual no MongoDB. Isso não cria transação distribuída com as gravações de grade/alocação Mongo: reservas SQL e alocações acadêmicas ainda podem divergir sob gravações concorrentes entre os dois fluxos.
+| Método | Endpoint | Finalidade |
+| --- | --- | --- |
+| `GET` | `/api/schedules/{id}/versions` | Consultar versões |
+| `GET` | `/api/schedules/{id}/versions/compare?fromVersion=1&toVersion=2` | Comparar versões |
+| `PUT` | `/api/schedules/{id}?expectedVersion=1&actor=coordenacao` | Salvar versão com controle de concorrência |
+| `POST` | `/api/schedules/{id}/submit-for-approval?actor=coordenacao` | Enviar rascunho para aprovação |
+| `POST` | `/api/schedules/{id}/approve?actor=direcao` | Aprovar grade |
+| `POST` | `/api/schedules/{id}/reject?actor=direcao&justification=...` | Rejeitar com justificativa |
+| `POST` | `/api/schedules/{id}/publish?actor=direcao` | Publicar versão aprovada |
+| `GET` | `/api/schedules/{id}/published` | Consultar versão publicada |
+| `GET` | `/api/schedules/{id}/audit` | Consultar auditoria |
+| `GET` | `/api/schedule-reports` | Consultar relatório JSON |
 
-Os parâmetros `requesterId`, `actorId` e `role` ainda são informados pelo cliente porque o projeto não possui autenticação/autorização; portanto, o módulo não deve ser exposto como seguro em rede compartilhada. Rejeição/cancelamento/não comparecimento e notificações não foram implementados porque a matriz de transição e o canal ainda estão em aberto nos registros de requisitos.
+Em atualizações com `expectedVersion`, uma divergência de versão retorna **409**, e a ausência do parâmetro retorna **428**. Os estados de uma grade são `RASCUNHO`, `PENDENTE_APROVACAO`, `APROVADA`, `REJEITADA` e `PUBLICADA`. As grades publicadas não podem ser excluídas; alterações e alocações de salas/materiais ocorrem na fase de rascunho.
 
-#### Versões, aprovação e publicação de grades
-- `GET /api/schedules/{id}/versions` - Consultar as versões e suas atividades.
-- `GET /api/schedules/{id}/versions/compare?fromVersion=1&toVersion=2` - Comparar inclusões, remoções e alterações de atividades.
-- `PUT /api/schedules/{id}?expectedVersion=1&actor=coordenacao` - Salvar nova versão. `expectedVersion` é obrigatório; divergência retorna `409` e ausência retorna `428`.
-- `POST /api/schedules/{id}/submit-for-approval?actor=coordenacao` - Submeter um rascunho.
-- `POST /api/schedules/{id}/approve?actor=direcao` ou `POST /api/schedules/{id}/reject?actor=direcao&justification=...` - Registrar decisão; rejeição exige justificativa.
-- `POST /api/schedules/{id}/publish?actor=direcao` - Publicar somente uma versão aprovada.
-- `GET /api/schedules/{id}/published` - Consultar a versão publicada; grades publicadas não podem ser excluídas.
-- `POST /api/schedules/{id}/adjustment-requests` - Abrir solicitação com `requester`, `description` e `activityId` opcional. `GET` na mesma rota consulta solicitações; `PATCH /api/schedules/{id}/adjustment-requests/{requestId}?actor=coordenacao&decision=ACEITA&response=...` registra a resposta.
-- `GET /api/schedules/{id}/notifications?recipient=teacher-1` e `PATCH /api/schedules/{id}/notifications/{notificationId}/read?recipient=teacher-1` - Consultar e marcar notificações como lidas.
-- `GET /api/schedules/{id}/audit` - Consultar eventos de criação, revisão, aprovação, publicação e solicitações de ajuste.
-- `GET /api/schedule-reports` - Gerar relatório JSON; filtros opcionais: `academicPeriodId`, `status`, `teacherId`, `classId` e `roomResourceId`.
+**Solicitações e notificações:**
 
-Os estados do fluxo são `RASCUNHO`, `PENDENTE_APROVACAO`, `APROVADA`, `REJEITADA` e `PUBLICADA`. Edições e alocações de sala/material são permitidas somente em rascunho; cada alteração cria uma nova versão. As versões, auditoria, solicitações e notificações são armazenadas no próprio documento MongoDB da grade. Notificações são registros consultáveis, sem integração de envio por e-mail ou push. O projeto ainda não implementa autenticação/autorização: `actor` e `recipient` são identificadores informados na requisição e não identidades verificadas, portanto não representam controle de acesso seguro.
+| Método | Endpoint | Finalidade |
+| --- | --- | --- |
+| `GET/POST` | `/api/schedules/{id}/adjustment-requests` | Listar ou abrir solicitações de ajuste |
+| `PATCH` | `/api/schedules/{id}/adjustment-requests/{requestId}?actor=coordenacao&decision=ACEITA&response=...` | Aceitar ou rejeitar solicitação |
+| `GET` | `/api/schedules/{id}/notifications?recipient=teacher-1` | Consultar notificações |
+| `PATCH` | `/api/schedules/{id}/notifications/{notificationId}/read?recipient=teacher-1` | Marcar como lida |
 
-#### Disponibilidade, recursos e alocação
-- `GET/POST /api/teachers/{teacherId}/availability` - Consultar ou cadastrar disponibilidade/indisponibilidade por período letivo.
-- `PUT/DELETE /api/teachers/{teacherId}/availability/{availabilityId}` - Editar ou remover enquanto a coleta do período estiver aberta. Disponibilidade recorrente usa `recurringWeekly`, `validFrom`, `validUntil`, `weekdays`, `dailyStartsAt` e `dailyEndsAt`.
-- `GET /api/resources` - Pesquisar por `code`, `name`, `type` (`ROOM` ou `MATERIAL`), `location`, `state`, `startsAt` e `endsAt`. Para materiais, a resposta inclui `availableQuantity` calculada para o intervalo quando as datas são informadas.
-- `GET/POST /api/resources`, `GET/PUT/DELETE /api/resources/{id}` - Consultar, cadastrar, editar ou inativar recurso. `DELETE` altera o estado para `INACTIVE`.
-- `PATCH /api/resources/{id}/state?state=AVAILABLE|IN_USE|MAINTENANCE|INACTIVE` - Alterar o estado operacional.
-- `GET /api/resources/{resourceId}/agenda?startsAt=...&endsAt=...` - Consultar alocações no intervalo.
-- `GET /api/resources/{resourceId}/block-impact?startsAt=...&endsAt=...` - Listar alocações afetadas antes de solicitar bloqueio.
-- `POST /api/resource-blocks` - Criar bloqueio pendente com motivo, responsável e intervalo; a resposta inclui as alocações afetadas.
-- `GET/PUT /api/resource-blocks/{id}`, `POST /api/resource-blocks/{id}/confirm?actor=...` e `POST /api/resource-blocks/{id}/cancel?actor=...` - Consultar, editar, confirmar ou cancelar mantendo histórico.
-- `PUT /api/schedules/{scheduleId}/activities/{activityId}/allocation?expectedVersion=1&actor=coordenacao` - Associar uma sala e quantidades de materiais à atividade; `DELETE` na mesma rota remove a alocação. Ambas exigem a versão esperada e geram nova versão.
+O corpo de uma solicitação de ajuste recebe `requester`, `description` e `activityId` (opcional). Versões, auditoria, solicitações e notificações são armazenadas no documento MongoDB da grade. As notificações são **registros consultáveis**, sem envio automático por e-mail ou push.
 
-A alocação verifica capacidade e características da sala, professores conflitantes ou indisponíveis, bloqueios confirmados, buffers e quantidade concorrente de materiais. As comparações de intervalo usam início inclusivo e fim exclusivo. A verificação e a gravação não são uma transação distribuída: concorrência simultânea entre requisições ainda requer uma garantia de persistência apropriada. Os horários usam `LocalDateTime`; o fuso institucional ainda precisa ser definido para atender integralmente aos RNFs temporais.
+### Disponibilidade docente, recursos e bloqueios
 
-## Estrutura do Projeto
+| Método | Endpoint | Finalidade |
+| --- | --- | --- |
+| `GET/POST` | `/api/teachers/{teacherId}/availability` | Consultar ou cadastrar disponibilidade |
+| `PUT/DELETE` | `/api/teachers/{teacherId}/availability/{availabilityId}` | Alterar/remover disponibilidade |
+| `GET/POST` | `/api/resources` | Pesquisar ou cadastrar recursos |
+| `GET/PUT/DELETE` | `/api/resources/{id}` | Consultar, editar ou inativar recurso |
+| `PATCH` | `/api/resources/{id}/state?state=AVAILABLE` | Atualizar estado operacional |
+| `GET` | `/api/resources/{resourceId}/agenda?startsAt=...&endsAt=...` | Consultar agenda do recurso |
+| `GET` | `/api/resources/{resourceId}/block-impact?startsAt=...&endsAt=...` | Identificar aulas afetadas |
+| `POST` | `/api/resource-blocks` | Criar bloqueio pendente |
+| `GET/PUT` | `/api/resource-blocks/{id}` | Consultar ou editar bloqueio |
+| `POST` | `/api/resource-blocks/{id}/confirm?actor=...` | Confirmar bloqueio |
+| `POST` | `/api/resource-blocks/{id}/cancel?actor=...` | Cancelar bloqueio |
+| `PUT/DELETE` | `/api/schedules/{scheduleId}/activities/{activityId}/allocation?expectedVersion=1&actor=coordenacao` | Associar ou remover alocação |
 
-O mapa de jornadas e rotas com interface, incluindo endpoints ainda sem tela, está em [docs/interface-jornadas.md](docs/interface-jornadas.md).
+A disponibilidade pode ser semanal e recorrente, usando `recurringWeekly`, `validFrom`, `validUntil`, `weekdays`, `dailyStartsAt` e `dailyEndsAt`. Os recursos podem ser dos tipos `ROOM` ou `MATERIAL`, com filtros por código, nome, localização, estado e período. Para materiais, a consulta de período pode apresentar `availableQuantity`.
 
-- `entity/` - Entidades MongoDB para estudantes, professores e planejamento acadêmico
-- `repository/` - Interfaces da camada de acesso a dados
-- `service/` - Camada de lógica de negócios
-- `controller/` - Controladores web
-- `templates/` - Templates Thymeleaf com Bootstrap
+As alocações verificam capacidade e características da sala, disponibilidade docente, bloqueios confirmados, buffers e quantidades concorrentes de materiais. Os intervalos usam **início inclusivo e fim exclusivo**.
 
-## Valor Educacional
+### Reservas de recursos — módulo opcional (PostgreSQL)
 
-Este projeto demonstra:
-- Operações CRUD básicas
-- Arquitetura MVC
-- Fundamentos do Spring Boot
-- Uso do Spring Data MongoDB
-- Injeção de dependência
-- Design de API RESTful
-- Integração com banco de dados NoSQL
-- Template frontend com Thymeleaf
+O módulo é ativado quando a propriedade `reservations.datasource.url` está configurada, juntamente com `reservations.datasource.username` e `reservations.datasource.password`. O **Flyway** aplica as migrations em `src/main/resources/db/migration`. Sem essa configuração, a API de reservas permanece desativada e as telas que usam MongoDB continuam independentes desse módulo.
+
+| Método | Endpoint | Finalidade |
+| --- | --- | --- |
+| `POST` | `/api/reservations` | Criar solicitação de reserva |
+| `GET` | `/api/reservations?resourceId=...&status=...&startsBefore=...&endsAfter=...` | Listar com filtros |
+| `GET` | `/api/reservations/{id}` | Consultar reserva |
+| `POST` | `/api/reservations/{id}/approve?actorId=...&role=RESPONSAVEL` | Aprovar reserva |
+| `POST` | `/api/reservations/{id}/start?actorId=...` | Marcar início de uso |
+| `POST` | `/api/reservations/{id}/complete?actorId=...` | Concluir uso |
+| `GET` | `/api/reservations/{id}/history` | Consultar histórico |
+
+Para criar uma reserva, o corpo utiliza `resourceId`, `resourceType` (`ROOM`, `PROFESSOR` ou `MATERIAL`), `requesterId`, `startsAt`, `endsAt`, `quantity` (opcional; padrão 1) e `academicPeriodId` (obrigatório para professor). Use datas **ISO-8601 com offset**, por exemplo `2026-03-01T10:00:00Z`.
+
+Os recursos de sala e professor usam restrições de exclusão **GiST** no PostgreSQL. Os materiais utilizam travamento transacional por recurso e análise do pico de quantidade. Conflitos retornam **HTTP 409**. O fluxo de reservas considera ainda bloqueios, buffers e informações de agenda do MongoDB.
+
+**Limites do módulo opcional:** não há transação distribuída entre PostgreSQL e MongoDB. Informações como `requesterId`, `actorId` e `role` podem ser informadas pelo cliente e não devem ser tratadas, isoladamente, como comprovação segura de identidade. O módulo não deve ser exposto como produção sem revisão de segurança. Rejeição, cancelamento, não comparecimento e notificações deste módulo ainda dependem de requisitos adicionais.
+
+## 🗂 Estrutura do projeto
+
+```text
+src/
+├── main/
+│   ├── java/                 # Controllers, services, repositories e entidades
+│   └── resources/
+│       ├── templates/        # Telas HTML / Thymeleaf
+│       ├── static/           # JavaScript, CSS e outros recursos
+│       └── db/migration/     # Migrações Flyway do módulo de reservas
+└── test/                     # Testes automatizados
+```
+
+Organização lógica do backend:
+
+- `entity/` — entidades persistidas no MongoDB.
+- `repository/` — interfaces de acesso a dados.
+- `service/` — regras de negócio.
+- `controller/` — endpoints HTTP e controllers web.
+- `templates/` — páginas renderizadas com Thymeleaf.
+
+Consulte também [**docs/interface-jornadas.md**](docs/interface-jornadas.md) para o mapa de jornadas, telas e rotas.
+
+## 🩺 Problemas frequentes
+
+| Mensagem / situação | O que verificar |
+| --- | --- |
+| `Connection refused localhost:27017` | URI do Atlas não foi aplicada; a aplicação tenta o MongoDB local |
+| `The connection string is invalid` | A URI deve começar com `mongodb://` ou `mongodb+srv://`, sem aspas coladas ao valor |
+| `Authentication failed` | Usuário e senha do **Database Access**; caracteres especiais na senha |
+| `Database name must not be empty` | Presença de `/qualidade_software` na URI |
+| `Timed out` ao conectar no Atlas | Cluster ativo e permissão de rede em **Network Access** |
+| `Port 8080 already in use` | Outra instância do Spring Boot está executando |
+| Docker/Testcontainers falhou | Docker instalado, daemon acessível e configuração de ambiente |
+| Java diferente de 17 | Confira `java -version`, `JAVA_HOME` e `PATH` |
+| Página do Codespaces não abre | Verifique **Ports → 8080** e o status do servidor |
+
+> **Importante:** `BUILD SUCCESS` no comando `spring-boot:run` não substitui a confirmação de que a aplicação realmente iniciou. Verifique os logs do Spring Boot e teste a tela de login.
+
+## 🔭 Limitações e melhorias futuras
+
+- **Remanejamento de salas:** a Gestora pode solicitar a troca e o pedido pode ser analisado; a decisão registrada **não executa automaticamente** a transferência da aula para a sala sugerida. Uma evolução é validar disponibilidade e aplicar a troca após aprovação.
+- **Notificações:** são consultadas no sistema; não há envio automático por e-mail ou push nas rotinas de grades descritas.
+- **Concorrência entre bancos:** os fluxos que envolvem PostgreSQL e MongoDB não constituem uma transação distribuída, podendo exigir mecanismos adicionais de consistência.
+- **Segurança:** o acesso por perfis e sessão da interface não deve ser confundido com autorização robusta de produção em todas as APIs; campos `actor`/`recipient` e parâmetros semelhantes exigem validação adequada.
+- **Datas e fusos:** as grades utilizam `LocalDateTime`; a definição explícita de um fuso institucional continua relevante.
+
+## 🎯 Valor educacional
+
+O projeto permite praticar **arquitetura MVC, CRUD, APIs REST, Spring Boot, injeção de dependência, persistência NoSQL, versionamento, testes automatizados, validação de regras de negócio e concorrência de reservas**.
+
+---
+
+**Projeto acadêmico — Qualidade de Software.**

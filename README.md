@@ -262,6 +262,39 @@ docker info
 ```
 
 Um resultado bem-sucedido apresenta **`BUILD SUCCESS`** e **zero falhas e erros** nos testes. A quantidade total de testes pode variar conforme a versão do projeto.
+### Solução de problemas com Docker e Testcontainers
+
+Se aparecer o erro:
+
+```text
+Could not find a valid Docker environment
+```
+
+Primeiro, verifique se o Docker está funcionando:
+
+```bash
+docker info
+```
+
+Se o Docker estiver funcionando, mas o Testcontainers continuar sem detectá-lo, tente a configuração de compatibilidade utilizada no ambiente de desenvolvimento:
+
+```bash
+printf 'api.version=1.44\n' > ~/.docker-java.properties
+```
+
+Em seguida, execute:
+
+```bash
+./mvnw -Dtest=ConcurrentReservationIntegrationTest test
+```
+
+Se funcionar, execute todos os testes:
+
+```bash
+./mvnw clean test
+```
+
+**Observação:** esse ajuste pode resolver incompatibilidades entre a API do Docker e bibliotecas Java. Se não funcionar, será necessário verificar os logs do Testcontainers e a configuração do ambiente.
 
 ## 📚 Documentação da API
 
